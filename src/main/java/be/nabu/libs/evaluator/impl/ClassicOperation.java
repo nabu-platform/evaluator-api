@@ -191,7 +191,7 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 	}
 
 	@SuppressWarnings("unchecked")
-	private Object getOperand(T context, int position) throws EvaluationException {
+	protected Object getOperand(T context, int position) throws EvaluationException {
 		QueryPart part = getParts().get(position);
 		if (part.getType().isNative())
 			return part.getContent();
