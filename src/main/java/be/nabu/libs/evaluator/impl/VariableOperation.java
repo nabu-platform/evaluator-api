@@ -1,6 +1,8 @@
 package be.nabu.libs.evaluator.impl;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -25,18 +27,31 @@ public class VariableOperation<T> extends BaseOperation<T> {
 	
 	protected Object get(T context, String name) throws EvaluationException {
 		try {
-			Field field = context.getClass().getDeclaredField(name);
-			if (!field.isAccessible())
-				field.setAccessible(true);
-			return field.get(context);
+			try {
+				Method method = context.getClass().getDeclaredMethod("get" + name.substring(0, 1).toUpperCase() + name.substring(1));
+				if (!method.isAccessible()) {
+					method.setAccessible(true);
+				}
+				return method.invoke(context);
+			}
+			catch (NoSuchMethodException e) {
+				Field field = context.getClass().getDeclaredField(name);
+				if (!field.isAccessible()) {
+					field.setAccessible(true);
+				}
+				return field.get(context);
+			}
 		}
 		catch (IllegalAccessException e) {
+			throw new EvaluationException(e);
+		}
+		catch (NoSuchFieldException e) {
 			throw new EvaluationException(e);
 		}
 		catch (SecurityException e) {
 			throw new EvaluationException(e);
 		}
-		catch (NoSuchFieldException e) {
+		catch (InvocationTargetException e) {
 			throw new EvaluationException(e);
 		}
 	}
