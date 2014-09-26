@@ -5,6 +5,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import be.nabu.libs.evaluator.EvaluationException;
@@ -35,10 +36,10 @@ import be.nabu.libs.evaluator.base.BaseOperation;
  */
 public class MethodOperation<T> extends BaseOperation<T> {
 
-	private Class<?> defaultClass;
+	private List<Class<?>> defaultClasses;
 	
-	public MethodOperation(Class<?> defaultClass) {
-		this.defaultClass = defaultClass;
+	public MethodOperation(Class<?>...defaultClasses) {
+		this.defaultClasses.addAll(Arrays.asList(defaultClasses));
 	}
 	public MethodOperation() {
 		this(Methods.class);
@@ -48,29 +49,31 @@ public class MethodOperation<T> extends BaseOperation<T> {
 	public void finish() throws ParseException {
 		if (!(getParts().get(0).getContent() instanceof Method)) {
 			String fullName = (String) getParts().get(0).getContent();
-			Class<?> targetClass = null;
 			String methodName = null;
 			try {
+				List<Class<?>> classesToCheck = new ArrayList<Class<?>>();
 				// if you access a specific class, use that
 				if (fullName.contains(".")) {
-					targetClass = Class.forName(fullName.replaceAll("^(.*)\\.[^.]+$", "$1"));
+					classesToCheck.add(Class.forName(fullName.replaceAll("^(.*)\\.[^.]+$", "$1")));
 					methodName = fullName.replaceAll("^.*\\.([^.]+)$", "$1");
 				}
 				// otherwise, assume the default "methods" class
 				else {
-					targetClass = defaultClass;
+					classesToCheck.addAll(defaultClasses);
 					methodName = fullName;
 				}
 				boolean methodFound = false;
-				for (Method method : targetClass.getDeclaredMethods()) {
-					if (Modifier.isStatic(method.getModifiers()) && method.getName().equals(methodName)) {
-						getParts().get(0).setContent(method);
-						methodFound = true;
-						break;
+				for (Class<?> clazz : classesToCheck) {
+					for (Method method : clazz.getDeclaredMethods()) {
+						if (Modifier.isStatic(method.getModifiers()) && method.getName().equals(methodName)) {
+							getParts().get(0).setContent(method);
+							methodFound = true;
+							break;
+						}
 					}
 				}
 				if (!methodFound)
-					throw new ParseException("Could not find the method " + methodName + " in class " + targetClass.getName(), 0);
+					throw new ParseException("Could not find the method " + methodName + " in target class(es)", 0);
 			}
 			catch (ClassNotFoundException e) {
 				throw new ParseException("Could not find the class: " + e.getMessage(), 0);
