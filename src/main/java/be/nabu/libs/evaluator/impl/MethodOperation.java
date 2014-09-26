@@ -36,7 +36,7 @@ import be.nabu.libs.evaluator.base.BaseOperation;
  */
 public class MethodOperation<T> extends BaseOperation<T> {
 
-	private List<Class<?>> defaultClasses;
+	private List<Class<?>> defaultClasses = new ArrayList<Class<?>>();
 	
 	public MethodOperation(Class<?>...defaultClasses) {
 		this.defaultClasses.addAll(Arrays.asList(defaultClasses));
