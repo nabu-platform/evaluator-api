@@ -147,14 +147,16 @@ public class VariableOperation<T> extends BaseOperation<T> {
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private List listify(Object object) {
-		List list = new ArrayList();
-		if (object instanceof Collection) {
-			list.addAll((Collection) object);
+		if (object instanceof List) {
+			return (List) object;
 		}
 		else if (object instanceof Object[]) {
-			list.addAll(Arrays.asList((Object[]) object));
+			return Arrays.asList((Object[]) object);
 		}
-		return list;
+		else if (object instanceof Collection) {
+			return new ArrayList((Collection) object);
+		}
+		throw new IllegalArgumentException("The object can not be converted to a list");
 	}
 	
 	@Override
