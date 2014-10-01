@@ -220,7 +220,7 @@ public class QueryParser {
 			if (!lenient && matcher.start() > last + 1) {
 				String substring = query.substring(last + 1, matcher.start()).trim();
 				if (substring.length() > 0)
-					throw new ParseException("Invalid token detected in [" + (last + 1) + ", " + matcher.start() + "]: " + substring, last + 1);
+					throw new ParseException("Invalid token detected in [" + (last + 1) + ", " + matcher.start() + "]: " + substring + " of '" + query + "'", last + 1);
 			}
 			parts.add(matcher.group());
 			last = matcher.end() - 1;
