@@ -4,8 +4,10 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import be.nabu.libs.evaluator.EvaluationException;
 import be.nabu.libs.evaluator.QueryPart;
@@ -66,32 +68,37 @@ public class VariableOperation<T> extends BaseOperation<T> {
 		Object object = get(context, path);
 		
 		// it's null or you have reached the end, just return what you get
-		if (object == null || offset == getParts().size() - 1)
+		if (object == null || offset == getParts().size() - 1) {
 			return object;
-		
+		}		
+		else if (object instanceof Map) {
+			// you have defined an index on the map, get a specific key
+			while (object instanceof Map && offset < getParts().size() - 1 && getParts().get(offset + 1).getType() == QueryPart.Type.OPERATION) {
+				Object key = ((Operation<T>) getParts().get(offset + 1).getContent()).evaluate(context);
+				object = ((Map) object).get(key);
+				offset++;
+			}
+			// if the indexes were the last part, return the result
+			if (offset == getParts().size() - 1) {
+				return object;
+			}
+			// otherwise, keep evaluating
+			else {
+				return evaluate((T) object, offset + 1);
+			}
+		}
 		// check if it's a list
-		else if (object instanceof List) {
+		else if (object instanceof Collection || object instanceof Object[]) {
 			// if the next element is an operation, it is indexed
 			// if it returns a boolean, it has to be executed against each element in the list to filter
 			// otherwise if it's a number, you need access to a single element
-			if (offset < getParts().size() - 1 && getParts().get(offset + 1).getType() == QueryPart.Type.OPERATION) {
+			while ((object instanceof Collection || object instanceof Object[]) && offset < getParts().size() - 1 && getParts().get(offset + 1).getType() == QueryPart.Type.OPERATION) {
+				object = listify(object);
 				// we assume that indexed operations will be fixed indexes so it will be a native operation
 				// this will not always be true but in a limited context (for which this is designed) this is the most likely scenario
 				if (((Operation<T>) getParts().get(offset + 1).getContent()).getType() == OperationType.NATIVE) {
 					Number index = (Number) ((Operation<T>) getParts().get(offset + 1).getContent()).evaluate(context);
-					Object child = null;
-					if (object instanceof List)
-						child = ((List) object).get(index.intValue());
-					else if (object instanceof Object[])
-						child = ((Object[]) object)[index.intValue()];
-					else
-						throw new EvaluationException("The child is not indexable");
-					// if the index was the last part, just return the child
-					if (offset == getParts().size() - 2)
-						return child;
-					// otherwise, keep evaluating
-					else
-						return evaluate((T) child, offset + 2);					
+					object = ((List) object).get(index.intValue());
 				}
 				else {
 					List result = new ArrayList();
@@ -100,24 +107,21 @@ public class VariableOperation<T> extends BaseOperation<T> {
 						// if true, the item will be used for further evaluation
 						Boolean useIt = (Boolean) ((Operation<T>) getParts().get(offset + 1).getContent()).evaluate((T) child);
 						if (useIt != null && useIt) {
-							if (offset == getParts().size() - 2)
-								result.add(child);
-							else {
-								Object childResult = evaluate((T) child, offset + 2);
-								if (childResult instanceof Collection)
-									result.addAll((Collection) childResult);
-								else
-									result.add(childResult);
-							}
+							result.add(child);
 						}
 					}
-					return result;
+					object = result;
 				}
+				offset++;
 			}
-			else {
+			// if the index was the last part, just return the child
+			if (offset == getParts().size() - 1) {
+				return object;
+			}
+			else if (object instanceof Collection || object instanceof Object[]) {
 				List results = new ArrayList();
 				// we just need to evaluate each subpart and add the result to the list
-				for (Object child : (List) object) {
+				for (Object child : listify(object)) {
 					if (child != null) {
 						Object childResult = evaluate((T) child, offset + 1);
 						if (childResult instanceof List)
@@ -128,12 +132,29 @@ public class VariableOperation<T> extends BaseOperation<T> {
 					}
 				}
 				// return the list
-				return results;
+				return results;				
+			}
+			// otherwise, keep evaluating
+			else {
+				return evaluate((T) object, offset + 1);
 			}
 		}
 		// it's not a list, just recursively evaluate
-		else
+		else {
 			return evaluate((T) object, offset + 1);
+		}
+	}
+
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	private List listify(Object object) {
+		List list = new ArrayList();
+		if (object instanceof Collection) {
+			list.addAll((Collection) object);
+		}
+		else if (object instanceof Object[]) {
+			list.addAll(Arrays.asList((Object[]) object));
+		}
+		return list;
 	}
 	
 	@Override
