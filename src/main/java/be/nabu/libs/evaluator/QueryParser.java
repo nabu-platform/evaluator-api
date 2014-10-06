@@ -175,6 +175,7 @@ public class QueryParser {
 	 * Validates the scopess
 	 * @param tokens
 	 */
+	@SuppressWarnings("incomplete-switch")
 	private void validate(List<QueryPart> tokens) throws ParseException {
 		// manipulated upon scope changes
 		int scope = 0;

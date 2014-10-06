@@ -51,37 +51,39 @@ public class MethodOperation<T> extends BaseOperation<T> {
 			String fullName = (String) getParts().get(0).getContent();
 			String methodName = null;
 			try {
-				List<Class<?>> classesToCheck = new ArrayList<Class<?>>();
-				// if you access a specific class, use that
-				if (fullName.contains(".")) {
-					classesToCheck.add(Class.forName(fullName.replaceAll("^(.*)\\.[^.]+$", "$1")));
-					methodName = fullName.replaceAll("^.*\\.([^.]+)$", "$1");
+				Method method = getMethod(fullName);
+				if (method == null) {
+					throw new ParseException("Could not find the method '" + methodName + "' in target class(es)", 0);
 				}
-				// otherwise, assume the default "methods" class
-				else {
-					classesToCheck.addAll(defaultClasses);
-					methodName = fullName;
-				}
-				boolean methodFound = false;
-				for (Class<?> clazz : classesToCheck) {
-					for (Method method : clazz.getDeclaredMethods()) {
-						if (Modifier.isStatic(method.getModifiers()) && method.getName().equals(methodName)) {
-							getParts().get(0).setContent(method);
-							methodFound = true;
-							break;
-						}
-					}
-				}
-				if (!methodFound)
-					throw new ParseException("Could not find the method " + methodName + " in target class(es)", 0);
+				getParts().get(0).setContent(method);
 			}
 			catch (ClassNotFoundException e) {
 				throw new ParseException("Could not find the class: " + e.getMessage(), 0);
 			}
-			catch (SecurityException e) {
-				throw new ParseException("Security exception: " + e.getMessage(), 0);
+		}
+	}
+	
+	public Method getMethod(String fullName) throws ClassNotFoundException {
+		List<Class<?>> classesToCheck = new ArrayList<Class<?>>();
+		String methodName = null;
+		// if you access a specific class, use that
+		if (fullName.contains(".")) {
+			classesToCheck.add(Class.forName(fullName.replaceAll("^(.*)\\.[^.]+$", "$1")));
+			methodName = fullName.replaceAll("^.*\\.([^.]+)$", "$1");
+		}
+		// otherwise, assume the default "methods" class
+		else {
+			classesToCheck.addAll(defaultClasses);
+			methodName = fullName;
+		}
+		for (Class<?> clazz : classesToCheck) {
+			for (Method method : clazz.getDeclaredMethods()) {
+				if (Modifier.isStatic(method.getModifiers()) && method.getName().equals(methodName)) {
+					return method;
+				}
 			}
 		}
+		return null;
 	}
 	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
