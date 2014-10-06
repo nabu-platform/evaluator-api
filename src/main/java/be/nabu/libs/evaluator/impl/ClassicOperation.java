@@ -1,6 +1,8 @@
 package be.nabu.libs.evaluator.impl;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import be.nabu.libs.converter.ConverterFactory;
@@ -9,6 +11,17 @@ import be.nabu.libs.evaluator.EvaluationException;
 import be.nabu.libs.evaluator.QueryPart;
 import be.nabu.libs.evaluator.api.Operation;
 import be.nabu.libs.evaluator.api.OperationProvider.OperationType;
+import be.nabu.libs.evaluator.api.operations.And;
+import be.nabu.libs.evaluator.api.operations.Div;
+import be.nabu.libs.evaluator.api.operations.Minus;
+import be.nabu.libs.evaluator.api.operations.Mod;
+import be.nabu.libs.evaluator.api.operations.Multiply;
+import be.nabu.libs.evaluator.api.operations.Next;
+import be.nabu.libs.evaluator.api.operations.Or;
+import be.nabu.libs.evaluator.api.operations.Plus;
+import be.nabu.libs.evaluator.api.operations.Power;
+import be.nabu.libs.evaluator.api.operations.Previous;
+import be.nabu.libs.evaluator.api.operations.Xor;
 import be.nabu.libs.evaluator.base.BaseOperation;
 
 public class ClassicOperation<T> extends BaseOperation<T> {
@@ -20,7 +33,7 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 		// do nothing
 	}
 	
-	@SuppressWarnings({ "unchecked", "rawtypes" })
+	@SuppressWarnings({ "unchecked", "rawtypes", "incomplete-switch" })
 	@Override
 	public Object evaluate(T context) throws EvaluationException {
 		for (int i = 0; i < getParts().size(); i++) {
@@ -30,7 +43,7 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 				// get the operands
 				Object left = part.getType().hasLeftOperand() ? getOperand(context, i - 1) : null;
 			
-				// the right operand does not always need to be calculated, check if the operator has a delay
+				// don't get (and potentially evaluate) the right part if it's not necessary
 				switch (part.getType()) {
 					case LOGICAL_AND:
 						if (!(Boolean) left)
@@ -42,15 +55,19 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 					break;
 				}
 				
-				Object right = part.getType().hasRightOperand() ? getOperand(context, i + 1) : null;
-
+				Object right = part.getType().hasRightOperand() ? getOperand(context, i + 1) : null;				
 				switch (part.getType()) {
 					case ADD:
+						if (left instanceof Plus) {
+							return ((Plus) left).plus(right);
+						}
+						else if (left == null) {
+							throw new NullPointerException("The left operand of an ADD method was null");
+						}
+						right = getConverter().convert(right, left.getClass());
 						// if the left one is a string, append
 						if (left instanceof String)
 							return ((String) left) + right;
-						else if (left == null)
-							throw new NullPointerException("The left operand of an ADD method was null");
 						else if (left instanceof Integer)
 							return ((Number) left).intValue() + ((Number) right).intValue();
 						else if (left instanceof Long)
@@ -63,6 +80,13 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							return ((Number) left).doubleValue() + ((Number) right).doubleValue();
 						break;
 					case SUBSTRACT:
+						if (left instanceof Minus) {
+							return ((Minus) left).minus(right);
+						}
+						if (!(left instanceof Number)) {
+							left = getConverter().convert(left, Double.class);
+						}
+						right = getConverter().convert(right, left.getClass());
 						if (left instanceof Integer)
 							return ((Number) left).intValue() - ((Number) right).intValue();
 						else if (left instanceof Long)
@@ -74,6 +98,10 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 						else if (left instanceof Float)
 							return ((Number) left).floatValue() - ((Number) right).floatValue();
 					case DIVIDE:
+						if (left instanceof Div) {
+							return ((Div) left).div(right);
+						}
+						right = getConverter().convert(right, left.getClass());
 						if (left instanceof Integer)
 							return ((Number) left).intValue() / ((Number) right).intValue();
 						else if (left instanceof Long)
@@ -85,6 +113,10 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 						else if (left instanceof Float)
 							return ((Number) left).floatValue() / ((Number) right).floatValue();
 					case MOD:
+						if (left instanceof Mod) {
+							return ((Mod) left).mod(right);
+						}
+						right = getConverter().convert(right, left.getClass());
 						if (left instanceof Integer)
 							return ((Number) left).intValue() % ((Number) right).intValue();
 						else if (left instanceof Long)
@@ -96,6 +128,10 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 						else if (left instanceof Float)
 							return ((Number) left).floatValue() % ((Number) right).floatValue();
 					case MULTIPLY:
+						if (left instanceof Multiply) {
+							return ((Multiply) left).multiply(right);
+						}
+						right = getConverter().convert(right, left.getClass());
 						if (left instanceof Integer)
 							return ((Number) left).intValue() * ((Number) right).intValue();
 						else if (left instanceof Long)
@@ -107,30 +143,44 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 						else if (left instanceof Float)
 							return ((Number) left).floatValue() * ((Number) right).floatValue();
 					case POWER:
+						if (left instanceof Power) {
+							return ((Power) left).power(right);
+						}
+						right = getConverter().convert(right, left.getClass());
 						return Math.pow(((Number) left).doubleValue(), ((Number) right).doubleValue());
 					case BITWISE_AND:
-						return (Boolean) left & (Boolean) right;
+						if (left instanceof And) {
+							return ((And) left).and(right);
+						}
+						return getConverter().convert(left, Boolean.class) & getConverter().convert(right, Boolean.class);
 					case BITWISE_OR:
-						return (Boolean) left | (Boolean) right;
+						if (left instanceof Or) {
+							return ((Or) left).or(right);
+						}
+						right = getConverter().convert(right, left.getClass());
+						return getConverter().convert(left, Boolean.class) | getConverter().convert(right, Boolean.class);
 					case LOGICAL_AND:
-						return (Boolean) left && (Boolean) right;
+						return getConverter().convert(left, Boolean.class) && getConverter().convert(right, Boolean.class);
 					case LOGICAL_OR:
-						return (Boolean) left || (Boolean) right;
+						return getConverter().convert(left, Boolean.class) || getConverter().convert(right, Boolean.class);
 					case EQUALS:
-						if (left == null)
+						if (left == null) {
 							return right == null ? true : false;
-						else if (right == null)
+						}
+						else if (right == null) {
 							return false;
+						}
 						else {
-							// first convert to the proper type
 							right = getConverter().convert(right, left.getClass());
 							return left.equals(right);
 						}
 					case NOT_EQUALS:
-						if (left == null)
+						if (left == null) {
 							return right == null ? false : true;
-						else if (right == null)
+						}
+						else if (right == null) {
 							return true;
+						}
 						else {
 							right = getConverter().convert(right, left.getClass());
 							return !left.equals(right);
@@ -148,32 +198,70 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 						right = getConverter().convert(right, left.getClass());
 						return ((Comparable) left).compareTo((Comparable) right) <= 0;
 					case IN:
-						List<?> list1 = right instanceof List ? (List<?>) right : Arrays.asList((Object[]) right);
+						List<?> list1 = right instanceof Collection ? new ArrayList((List<?>) right) : Arrays.asList((Object[]) right);
 						return list1.contains(left);
 					case NOT_IN:
-						List<?> list2 = right instanceof List ? (List<?>) right : Arrays.asList((Object[]) right);
+						List<?> list2 = right instanceof Collection ? new ArrayList((List<?>) right) : Arrays.asList((Object[]) right);
 						return !list2.contains(left);
 					case NOT:
-						return !(Boolean) right;
+						return !getConverter().convert(right, Boolean.class);
 					case MATCHES:
+						left = getConverter().convert(left, String.class);
+						right = getConverter().convert(right, String.class);
 						return ((String) left).matches((String) right);
 					case NOT_MATCHES:
+						left = getConverter().convert(left, String.class);
+						right = getConverter().convert(right, String.class);
 						return !((String) left).matches((String) right);
 					case NOT_XOR:
+						left = getConverter().convert(left, Boolean.class);
+						right = getConverter().convert(right, Boolean.class);
 						return (Boolean) left.equals((Boolean) right);
 					case XOR:
+						if (left instanceof Xor) {
+							return ((Xor) left).xor(right);
+						}
+						left = getConverter().convert(left, Boolean.class);
+						right = getConverter().convert(right, Boolean.class);
 						return !(Boolean) left.equals((Boolean) right);
 					case INCREASE:
-						if (left instanceof Integer)
+						if (left instanceof Next) {
+							return ((Next) left).next();
+						}
+						if (left instanceof Integer) {
 							return ((Number) left).intValue() + 1;
-						else if (left instanceof Long)
+						}
+						else if (left instanceof Long) {
 							return ((Number) left).longValue() + 1;
-						else if (left instanceof Short)
+						}
+						else if (left instanceof Short) {
 							return ((Number) left).shortValue() + 1;
-						else if (left instanceof Double)
+						}
+						else if (left instanceof Double) {
 							return ((Number) left).doubleValue() + 1;
-						else if (left instanceof Float)
+						}
+						else if (left instanceof Float) {
 							return ((Number) left).floatValue() + 1;
+						}
+					case DECREASE:
+						if (left instanceof Previous) {
+							return ((Previous) left).previous();
+						}
+						if (left instanceof Integer) {
+							return ((Number) left).intValue() - 1;
+						}
+						else if (left instanceof Long) {
+							return ((Number) left).longValue() - 1;
+						}
+						else if (left instanceof Short) {
+							return ((Number) left).shortValue() - 1;
+						}
+						else if (left instanceof Double) {
+							return ((Number) left).doubleValue() - 1;
+						}
+						else if (left instanceof Float) {
+							return ((Number) left).floatValue() - 1;
+						}
 				}
 			}
 		}
@@ -181,8 +269,9 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 	}
 	
 	public Converter getConverter() {
-		if (converter == null)
+		if (converter == null) {
 			converter = ConverterFactory.getInstance().getConverter();
+		}
 		return converter;
 	}
 
@@ -193,12 +282,15 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 	@SuppressWarnings("unchecked")
 	protected Object getOperand(T context, int position) throws EvaluationException {
 		QueryPart part = getParts().get(position);
-		if (part.getType().isNative())
+		if (part.getType().isNative()) {
 			return part.getContent();
-		else if (part.getType() == QueryPart.Type.OPERATION)
+		}
+		else if (part.getType() == QueryPart.Type.OPERATION) {
 			return ((Operation<T>) part.getContent()).evaluate(context);
-		else
+		}
+		else {
 			throw new EvaluationException("Expecting either a native part or an operation");
+		}
 	}
 
 	@Override
