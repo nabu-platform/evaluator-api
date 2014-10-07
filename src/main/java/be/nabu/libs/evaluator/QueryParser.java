@@ -32,6 +32,8 @@ public class QueryParser {
 	
 	private static QueryParser parser;
 	
+	private boolean allowUnscopedSeparators = false;
+	
 	public static QueryParser getInstance() {
 		if (parser == null)
 			parser = new QueryParser();
@@ -172,11 +174,11 @@ public class QueryParser {
 	}
 	
 	/**
-	 * Validates the scopess
+	 * Validates the scopes
 	 * @param tokens
 	 */
 	@SuppressWarnings("incomplete-switch")
-	private void validate(List<QueryPart> tokens) throws ParseException {
+	protected void validate(List<QueryPart> tokens) throws ParseException {
 		// manipulated upon scope changes
 		int scope = 0;
 		// manipulated upon index changes
@@ -189,7 +191,7 @@ public class QueryParser {
 				case INDEX_START: index++; break;
 				case INDEX_STOP: index--; break;
 				case SEPARATOR:
-					if (scope <= 0)
+					if (scope <= 0 && !allowUnscopedSeparators)
 						throw new ParseException("All separators must exist in a scope", 0);
 				break;
 			}
@@ -280,5 +282,13 @@ public class QueryParser {
 				throw new ParseException("Unknown token: " + token, 0);
 		}
 		return result;
+	}
+
+	public boolean isAllowUnscopedSeparators() {
+		return allowUnscopedSeparators;
+	}
+
+	protected void setAllowUnscopedSeparators(boolean allowUnscopedSeparators) {
+		this.allowUnscopedSeparators = allowUnscopedSeparators;
 	}
 }
