@@ -269,7 +269,7 @@ public class QueryParser {
 								// if it's another operator, the substract is actually a negative sign
 								isSign |= previousType.isOperator()
 									// or if the type is something that can _not_ be substracted, it is also a sign
-									|| Arrays.asList(new Type [] { Type.SCOPE_START, Type.SCOPE_STOP, Type.SEPARATOR, Type.INDEX_START, Type.INDEX_STOP }).contains(previousType);
+									|| Arrays.asList(new Type [] { Type.SCOPE_START, Type.SEPARATOR, Type.INDEX_START }).contains(previousType);
 							}
 							if (isSign) {
 								token = "-" + token;
