@@ -1,6 +1,7 @@
 package be.nabu.libs.evaluator.impl;
 
 import be.nabu.libs.evaluator.EvaluationException;
+import be.nabu.libs.evaluator.QueryPart.Type;
 import be.nabu.libs.evaluator.api.OperationProvider.OperationType;
 import be.nabu.libs.evaluator.base.BaseOperation;
 
@@ -28,6 +29,11 @@ public class NativeOperation<T> extends BaseOperation<T> {
 	
 	@Override
 	public String toString() {
-		return getParts().get(0).getContent().toString();
+		if (getParts().get(0).getType() == Type.STRING) {
+			return "\"" + getParts().get(0).getContent().toString() + "\""; 
+		}
+		else {
+			return getParts().get(0).getContent().toString();
+		}
 	}
 }
