@@ -2,6 +2,7 @@ package be.nabu.libs.evaluator;
 
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -157,7 +158,6 @@ public class QueryParser {
 		this.identifier = identifier;
 	}
 
-
 	/**
 	 * If lenient is set to "true", characters that are not part of any regex are simply ignored
 	 * Otherwise if set to "false", an error is thrown if the rule contains incorrect characters
@@ -258,15 +258,38 @@ public class QueryParser {
 					if (post.containsKey(type))
 						token = token.replaceAll(post.get(type), "$1");
 					// parse it as a long
-					if (type == Type.NUMBER_INTEGER) {
-						Long longValue = new Long(token);
-						if (longValue > Integer.MAX_VALUE)
-							result.add(new QueryPart(type, longValue));
-						else
-							result.add(new QueryPart(type, new Integer(longValue.intValue())));
+					if (type == Type.NUMBER_INTEGER || type == Type.NUMBER_DECIMAL) {
+						// check if it's a negative number
+						if (result.size() >= 1 && result.get(result.size() - 1).getType() == Type.SUBSTRACT) {
+							// if there is nothing before the substract, it is definately linked to the number
+							boolean isSign = result.size() <= 1;
+							if (!isSign) {
+								// otherwise we check the one before the substract
+								Type previousType = result.get(result.size() - 2).getType();
+								// if it's another operator, the substract is actually a negative sign
+								isSign |= previousType.isOperator()
+									// or if the type is something that can _not_ be substracted, it is also a sign
+									|| Arrays.asList(new Type [] { Type.SCOPE_START, Type.SCOPE_STOP, Type.SEPARATOR, Type.INDEX_START, Type.INDEX_STOP }).contains(previousType);
+							}
+							if (isSign) {
+								token = "-" + token;
+								// remove the substract from the tokens
+								result.remove(result.size() - 1);
+							}
+						}
+						if (type == Type.NUMBER_INTEGER) {
+							Long longValue = new Long(token);
+							if (longValue > Integer.MAX_VALUE || longValue < Integer.MIN_VALUE) {
+								result.add(new QueryPart(type, longValue));
+							}
+							else {
+								result.add(new QueryPart(type, new Integer(longValue.intValue())));
+							}
+						}
+						else {
+							result.add(new QueryPart(type, new Double(token)));
+						}
 					}
-					else if (type == Type.NUMBER_DECIMAL)
-						result.add(new QueryPart(type, new Double(token)));
 					else if (type == Type.BOOLEAN_FALSE)
 						result.add(new QueryPart(type, false));
 					else if (type == Type.BOOLEAN_TRUE)

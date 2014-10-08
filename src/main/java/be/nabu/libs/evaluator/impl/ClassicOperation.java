@@ -9,6 +9,7 @@ import be.nabu.libs.converter.ConverterFactory;
 import be.nabu.libs.converter.api.Converter;
 import be.nabu.libs.evaluator.EvaluationException;
 import be.nabu.libs.evaluator.QueryPart;
+import be.nabu.libs.evaluator.QueryPart.Type;
 import be.nabu.libs.evaluator.api.Operation;
 import be.nabu.libs.evaluator.api.OperationProvider.OperationType;
 import be.nabu.libs.evaluator.api.operations.And;
@@ -296,5 +297,60 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 	@Override
 	public OperationType getType() {
 		return OperationType.CLASSIC;
+	}
+
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		for (int i = 0; i < getParts().size(); i++) {
+			QueryPart part = getParts().get(i);
+			if (part.getType().isOperator()) {
+				if (part.getType().hasLeftOperand()) {
+					builder.append(" ");
+				}
+				builder.append(part.getContent());
+				if (part.getType().hasRightOperand()) {
+					builder.append(" ");
+				}
+			}
+			else if (part.getType() == Type.STRING) {
+				builder.append("\"" + part.getContent().toString() + "\"");
+			}
+			else if (part.getType().isNative()) {
+				builder.append(part.getContent().toString());
+			}
+			else if (part.getType() == Type.OPERATION) {
+				// variable operations do not need to be in ()
+				if (((Operation<?>) part.getContent()).getType() == OperationType.VARIABLE) {
+					builder.append(part.getContent().toString());
+				}
+				// if it's a classic operation but the operator is at the same level as this one, it is ok
+				else if (((Operation<?>) part.getContent()).getType() == OperationType.CLASSIC) {
+					int ownPrecedence = -1;
+					// get own precedence
+					for (QueryPart child : getParts()) {
+						if (child.getType().isOperator() && child.getType().getPrecedence() > ownPrecedence) {
+							ownPrecedence = child.getType().getPrecedence();
+						}
+					}
+					int otherPrecedence = -1;
+					for (QueryPart child : ((Operation<?>) part.getContent()).getParts()) {
+						if (child.getType().isOperator() && child.getType().getPrecedence() > otherPrecedence) {
+							otherPrecedence = child.getType().getPrecedence();
+						}
+					}
+					if (ownPrecedence != otherPrecedence) {
+						builder.append("(" + part.getContent().toString() + ")");	
+					}
+					else {
+						builder.append(part.getContent().toString());
+					}
+				}
+				else {
+					builder.append("(" + part.getContent().toString() + ")");
+				}
+			}
+		}
+		return builder.toString();
 	}
 }

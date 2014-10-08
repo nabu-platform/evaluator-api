@@ -12,7 +12,6 @@ import be.nabu.libs.evaluator.api.Analyzer;
 import be.nabu.libs.evaluator.api.Operation;
 import be.nabu.libs.evaluator.impl.PlainOperationProvider;
 
-
 public class TestQueryParser extends TestCase {
 	
 	@SuppressWarnings("unchecked")
@@ -27,11 +26,13 @@ public class TestQueryParser extends TestCase {
 		assertEquals(15, operation.evaluate(null));
 
 		operation = analyzer.analyze(parser.parse("5+(5*(2-(0.5*4)))"));
+		assertEquals("5 + (5 * (2 - (0.5 * 4)))", operation.toString());
 		assertEquals(5, operation.evaluate(null));
 		
 		// list support
 		Test test = new Test("my", "myOther");
 		operation = analyzer.analyze(parser.parse("tests[someOtherValue='my2']"));
+		assertEquals("tests[someOtherValue = \"my2\"]", operation.toString());
 		List<Test2> results = (List<Test2>) operation.evaluate(test);
 		assertEquals(1, results.size());
 		assertTrue(results.get(0).someValue.equals("my1"));
@@ -44,8 +45,39 @@ public class TestQueryParser extends TestCase {
 		
 		// matrix support
 		operation = analyzer.analyze(parser.parse("testsAsArray[someOtherValue='my2'][0]/someValue"));
+		assertEquals("testsAsArray[someOtherValue = \"my2\"][0]/someValue", operation.toString());
 		String result = (String) operation.evaluate(test);
 		assertEquals("my1", result);
+	}
+	
+	public void testNegativeNumbers() throws ParseException {
+		Analyzer<Object> analyzer = new PathAnalyzer<Object>(new PlainOperationProvider());
+		QueryParser parser = QueryParser.getInstance();
+		Operation<Object> operation = analyzer.analyze(parser.parse("0+1+-2+3*-1"));
+		assertEquals("0 + 1 + -2 + (3 * -1)", operation.toString());
+	}
+	
+	public void testWrongQuery() throws ParseException {
+		Analyzer<Object> analyzer = new PathAnalyzer<Object>(new PlainOperationProvider());
+		QueryParser parser = QueryParser.getInstance();
+		try {
+			analyzer.analyze(parser.parse("1++2"));
+			fail("This should fail during analysis");
+		}
+		catch (ParseException e) {
+			// expected
+		}
+	}
+	
+	public void testPrecedenceFormatting() throws ParseException {
+		Analyzer<Object> analyzer = new PathAnalyzer<Object>(new PlainOperationProvider());
+		QueryParser parser = QueryParser.getInstance();
+		Operation<Object> operation = analyzer.analyze(parser.parse("1*2+3*4"));
+		assertEquals("(1 * 2) + (3 * 4)", operation.toString());
+		operation = analyzer.analyze(parser.parse("1*2/3*4"));
+		assertEquals("1 * 2 / 3 * 4", operation.toString());
+		operation = analyzer.analyze(parser.parse("test1++ + test2--"));
+		assertEquals("(test1 ++) + (test2 --)", operation.toString());
 	}
 	
 	public static class Test {

@@ -236,8 +236,11 @@ public class PathAnalyzer<T> implements Analyzer<T> {
 					throw new ParseException("Found operator " + token.getToken().getContent() + " of precedence " + token.getToken().getType().getPrecedence() + " while parsing for precedence " + precedence, 0);
 				
 				// if we find a "lower" operator, skip it for now, we'll get back to you buddy, don't worry
-				else if (token.getToken().getType().getPrecedence() < precedence)
+				else if (token.getToken().getType().getPrecedence() < precedence) {
 					token = token.getPrevious();
+					// check comment in other method
+					last = null;
+				}
 				
 				// otherwise we just add the part to the current operation
 				else {
@@ -280,6 +283,9 @@ public class PathAnalyzer<T> implements Analyzer<T> {
 				throw new ParseException("Expecting only operators and native types at this point, found: " + token.getToken(), 0);
 			// leave it for the operators
 			else {
+				if (last != null && last.getType() == OperationType.CLASSIC) {
+					throw new ParseException("Unexpected operand after '" + last + "': " + token.getToken().getContent(), 0);
+				}
 				// assign it to "last" so it gets picked up in case you just print out a native type
 				last = operationProvider.newOperation(OperationType.NATIVE);
 				last.add(token.getToken());
@@ -308,15 +314,23 @@ public class PathAnalyzer<T> implements Analyzer<T> {
 				if (token.getToken().getType().getPrecedence() > precedence)
 					throw new ParseException("Found operator " + token.getToken().getContent() + " of precedence " + token.getToken().getType().getPrecedence() + " while parsing for precedence " + precedence, 0);
 				
-				else if (token.getToken().getType().getPrecedence() < precedence)
+				else if (token.getToken().getType().getPrecedence() < precedence) {
 					token = token.getNext();
+					// the "last" operation is meant to convey the very last calculation operation generated from the tokens
+					// it will contain all the other operations where necessary
+					// however if we have detected an operator with a lower precedence, we are definately not at the "last" operation yet
+					// so we reset it to null to allow us to perform the check you see in the last "else" statement of this method
+					// this way we can detect wrongly formatted operations
+					last = null;
+				}
 				
 				else {
 					Operation<T> operation = operationProvider.newOperation(OperationType.CLASSIC);
 					
 					if (token.getToken().getType().hasLeftOperand()) {
-						if (!token.hasPrevious())
-							throw new ParseException("The operand " + token.getToken().getType() + " expects a right operand but there wasn't one", 0);
+						if (!token.hasPrevious()) {
+							throw new ParseException("The operand " + token.getToken().getType() + " expects a left operand but there wasn't one", 0);
+						}
 						operation.add(token.getPrevious().getToken());
 						token.getPrevious().remove();
 					}
@@ -326,8 +340,9 @@ public class PathAnalyzer<T> implements Analyzer<T> {
 					
 					// if you are expecting a right operand, add it
 					if (token.getToken().getType().hasRightOperand()) {
-						if (!token.hasNext())
+						if (!token.hasNext()) {
 							throw new ParseException("The operand " + token.getToken().getType() + " expects a right operand but there wasn't one", 0);
+						}
 						operation.add(token.getNext().getToken());
 						// remove it
 						token.getNext().remove();
@@ -352,6 +367,9 @@ public class PathAnalyzer<T> implements Analyzer<T> {
 				throw new ParseException("Expecting only operators and native types at this point, found: " + token.getToken(), 0);
 			// leave it for the operators
 			else {
+				if (last != null && last.getType() == OperationType.CLASSIC) {
+					throw new ParseException("Unexpected operand after '" + last + "': " + token.getToken().getContent(), 0);
+				}
 				// assign it to "last" so it gets picked up in case you just print out a native type
 				last = operationProvider.newOperation(OperationType.NATIVE);
 				last.add(token.getToken());

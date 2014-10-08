@@ -35,18 +35,22 @@ abstract public class BaseOperation<T> implements Operation<T> {
 	
 	@Override
 	public String toString() {
-		return toString(0);
+		return toTreeString();
+	}
+	
+	public String toTreeString() {
+		return toTreeString(0);
 	}
 	
 	/**
 	 * Needs to be optimized
 	 */
 	@SuppressWarnings("unchecked")
-	private String toString(int depth) {
+	private String toTreeString(int depth) {
 		String content = "";
 		for (QueryPart part : parts) {
 			if (part.getType() == QueryPart.Type.OPERATION)
-				content += getTabs(depth) + "(\n" + ((BaseOperation<T>) part.getContent()).toString(depth + 1) + "\n" + getTabs(depth) + ")";
+				content += getTabs(depth) + "(\n" + ((BaseOperation<T>) part.getContent()).toTreeString(depth + 1) + "\n" + getTabs(depth) + ")";
 			else
 				content += (content.length() > 0 ? ",\n"  : "") + getTabs(depth) + part.getType() + "[" + part.getContent() + "]";
 		}

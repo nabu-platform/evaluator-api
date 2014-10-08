@@ -10,6 +10,8 @@ import java.util.List;
 
 import be.nabu.libs.evaluator.EvaluationException;
 import be.nabu.libs.evaluator.Methods;
+import be.nabu.libs.evaluator.QueryPart;
+import be.nabu.libs.evaluator.QueryPart.Type;
 import be.nabu.libs.evaluator.api.Operation;
 import be.nabu.libs.evaluator.api.OperationProvider.OperationType;
 import be.nabu.libs.evaluator.base.BaseOperation;
@@ -111,5 +113,28 @@ public class MethodOperation<T> extends BaseOperation<T> {
 	@Override
 	public OperationType getType() {
 		return OperationType.METHOD;
+	}
+	
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		// first the method name
+		builder.append((String) getParts().get(0).getContent());
+		// then the rest
+		builder.append("(");
+		for (int i = 1; i < getParts().size(); i++) {
+			QueryPart part = getParts().get(i);
+			if (i > 1) {
+				builder.append(", ");
+			}
+			if (part.getType() == Type.STRING) {
+				builder.append("\"" + part.getContent().toString() + "\"");
+			}
+			else {
+				builder.append(part.getContent().toString());
+			}
+		}
+		builder.append(")");
+		return builder.toString();
 	}
 }

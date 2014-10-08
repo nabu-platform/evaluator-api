@@ -25,4 +25,9 @@ public class NativeOperation<T> extends BaseOperation<T> {
 	public OperationType getType() {
 		return OperationType.NATIVE;
 	}
+	
+	@Override
+	public String toString() {
+		return getParts().get(0).getContent().toString();
+	}
 }

@@ -11,6 +11,7 @@ import java.util.Map;
 
 import be.nabu.libs.evaluator.EvaluationException;
 import be.nabu.libs.evaluator.QueryPart;
+import be.nabu.libs.evaluator.QueryPart.Type;
 import be.nabu.libs.evaluator.api.Operation;
 import be.nabu.libs.evaluator.api.OperationProvider.OperationType;
 import be.nabu.libs.evaluator.base.BaseOperation;
@@ -162,5 +163,24 @@ public class VariableOperation<T> extends BaseOperation<T> {
 	@Override
 	public OperationType getType() {
 		return OperationType.VARIABLE;
+	}
+	
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		for (int i = 0; i < getParts().size(); i++) {
+			QueryPart part = getParts().get(i);
+			if (part.getType() == Type.VARIABLE) {
+				String string = part.getContent().toString();
+				if (i > 0 && !string.startsWith("/")) {
+					builder.append("/");
+				}
+				builder.append(string);
+			}
+			else if (part.getType() == Type.OPERATION) {
+				builder.append("[" + part.getContent() + "]");
+			}
+		}
+		return builder.toString();
 	}
 }
