@@ -38,6 +38,8 @@ public class MethodOperation<T> extends BaseOperation<T> {
 
 	private List<Class<?>> defaultClasses = new ArrayList<Class<?>>();
 	
+	private Method method;
+	
 	public MethodOperation(Class<?>...defaultClasses) {
 		this.defaultClasses.addAll(Arrays.asList(defaultClasses));
 	}
@@ -47,23 +49,18 @@ public class MethodOperation<T> extends BaseOperation<T> {
 	
 	@Override
 	public void finish() throws ParseException {
-		if (!(getParts().get(0).getContent() instanceof Method)) {
-			String fullName = (String) getParts().get(0).getContent();
-			String methodName = null;
-			try {
-				Method method = getMethod(fullName);
-				if (method == null) {
-					throw new ParseException("Could not find the method '" + methodName + "' in target class(es)", 0);
-				}
-				getParts().get(0).setContent(method);
-			}
-			catch (ClassNotFoundException e) {
-				throw new ParseException("Could not find the class: " + e.getMessage(), 0);
-			}
-		}
+		// do nothing
 	}
 	
-	public Method getMethod(String fullName) throws ClassNotFoundException {
+	protected Method getMethod() throws ClassNotFoundException {
+		if (method == null) {
+			String fullName = (String) getParts().get(0).getContent();
+			method = findMethod(fullName);
+		}
+		return method;
+	}
+	
+	public Method findMethod(String fullName) throws ClassNotFoundException {
 		List<Class<?>> classesToCheck = new ArrayList<Class<?>>();
 		String methodName = null;
 		// if you access a specific class, use that
@@ -89,22 +86,25 @@ public class MethodOperation<T> extends BaseOperation<T> {
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
 	public Object evaluate(T context) throws EvaluationException {
-		Method method = (Method) getParts().get(0).getContent();
-		List arguments = new ArrayList();
-		for (int i = 1; i < getParts().size(); i++) {
-			Operation<T> argumentOperation = (Operation<T>) getParts().get(i).getContent();
-			arguments.add(argumentOperation.evaluate(context));
-		}
 		try {
+			Method method = getMethod();
+			if (method == null) {
+				throw new EvaluationException("The method '" + getParts().get(0).getContent() + "' can not be resolved");
+			}
+			List arguments = new ArrayList();
+			for (int i = 1; i < getParts().size(); i++) {
+				Operation<T> argumentOperation = (Operation<T>) getParts().get(i).getContent();
+				arguments.add(argumentOperation.evaluate(context));
+			}
 			return method.invoke(null, arguments.toArray());
 		}
 		catch (IllegalAccessException e) {
 			throw new EvaluationException(e);
 		}
-		catch (IllegalArgumentException e) {
+		catch (InvocationTargetException e) {
 			throw new EvaluationException(e);
 		}
-		catch (InvocationTargetException e) {
+		catch (ClassNotFoundException e) {
 			throw new EvaluationException(e);
 		}
 	}

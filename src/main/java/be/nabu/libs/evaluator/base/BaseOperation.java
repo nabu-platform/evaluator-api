@@ -28,7 +28,8 @@ abstract public class BaseOperation<T> implements Operation<T> {
 		parts.add(part);
 	}
 	
-	protected List<QueryPart> getParts() {
+	@Override
+	public List<QueryPart> getParts() {
 		return parts;
 	}
 	
