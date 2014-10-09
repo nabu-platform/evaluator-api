@@ -199,11 +199,23 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 						right = getConverter().convert(right, left.getClass());
 						return ((Comparable) left).compareTo((Comparable) right) <= 0;
 					case IN:
-						List<?> list1 = right instanceof Collection ? new ArrayList((List<?>) right) : Arrays.asList((Object[]) right);
-						return list1.contains(left);
+						if (right instanceof String) {
+							left = getConverter().convert(left, String.class);
+							return ((String) right).toLowerCase().contains(((String) left).toLowerCase());
+						}
+						else {
+							List<?> list1 = right instanceof Collection ? new ArrayList((List<?>) right) : Arrays.asList((Object[]) right);
+							return list1.contains(left);
+						}
 					case NOT_IN:
-						List<?> list2 = right instanceof Collection ? new ArrayList((List<?>) right) : Arrays.asList((Object[]) right);
-						return !list2.contains(left);
+						if (right instanceof String) {
+							left = getConverter().convert(left, String.class);
+							return !((String) right).toLowerCase().contains(((String) left).toLowerCase());
+						}
+						else {
+							List<?> list2 = right instanceof Collection ? new ArrayList((List<?>) right) : Arrays.asList((Object[]) right);
+							return !list2.contains(left);
+						}
 					case NOT:
 						return !getConverter().convert(right, Boolean.class);
 					case MATCHES:
