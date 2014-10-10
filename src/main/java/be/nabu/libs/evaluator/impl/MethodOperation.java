@@ -6,7 +6,9 @@ import java.lang.reflect.Modifier;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import be.nabu.libs.evaluator.EvaluationException;
 import be.nabu.libs.evaluator.Methods;
@@ -40,7 +42,7 @@ public class MethodOperation<T> extends BaseOperation<T> {
 
 	private List<Class<?>> defaultClasses = new ArrayList<Class<?>>();
 	
-	private Method method;
+	private Map<Integer, Method> methods = new HashMap<Integer, Method>();
 	
 	public MethodOperation(Class<?>...defaultClasses) {
 		this.defaultClasses.addAll(Arrays.asList(defaultClasses));
@@ -54,15 +56,19 @@ public class MethodOperation<T> extends BaseOperation<T> {
 		// do nothing
 	}
 	
-	protected Method getMethod() throws ClassNotFoundException {
-		if (method == null) {
+	protected Method getMethod(int amountOfParams) throws ClassNotFoundException {
+		if (!methods.containsKey(amountOfParams)) {
 			String fullName = (String) getParts().get(0).getContent();
-			method = findMethod(fullName);
+			methods.put(amountOfParams, findMethod(fullName, amountOfParams));
 		}
-		return method;
+		return methods.get(amountOfParams);
 	}
 	
 	public Method findMethod(String fullName) throws ClassNotFoundException {
+		return findMethod(fullName, -1);
+	}
+	
+	protected Method findMethod(String fullName, int amountOfParams) throws ClassNotFoundException {
 		List<Class<?>> classesToCheck = new ArrayList<Class<?>>();
 		String methodName = null;
 		// if you access a specific class, use that
@@ -78,7 +84,9 @@ public class MethodOperation<T> extends BaseOperation<T> {
 		for (Class<?> clazz : classesToCheck) {
 			for (Method method : clazz.getDeclaredMethods()) {
 				if (Modifier.isStatic(method.getModifiers()) && method.getName().equals(methodName)) {
-					return method;
+					if (amountOfParams < 0 || method.getParameterTypes().length == amountOfParams) {
+						return method;
+					}
 				}
 			}
 		}
@@ -89,14 +97,14 @@ public class MethodOperation<T> extends BaseOperation<T> {
 	@Override
 	public Object evaluate(T context) throws EvaluationException {
 		try {
-			Method method = getMethod();
-			if (method == null) {
-				throw new EvaluationException("The method '" + getParts().get(0).getContent() + "' can not be resolved");
-			}
 			List arguments = new ArrayList();
 			for (int i = 1; i < getParts().size(); i++) {
 				Operation<T> argumentOperation = (Operation<T>) getParts().get(i).getContent();
 				arguments.add(argumentOperation.evaluate(context));
+			}
+			Method method = getMethod(arguments.size());
+			if (method == null) {
+				throw new EvaluationException("The method '" + getParts().get(0).getContent() + "' can not be resolved");
 			}
 			return method.invoke(null, arguments.toArray());
 		}

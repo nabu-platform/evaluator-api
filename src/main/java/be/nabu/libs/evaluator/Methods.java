@@ -18,6 +18,14 @@ public class Methods {
 		);
 	}
 	
+	public static String substring(String original, int offset) {
+		return original.substring(offset);
+	}
+	
+	public static String substring(String original, int offset, int length) {
+		return original.substring(offset, offset + length);
+	}
+	
 	public static Integer count(Object object) {
 		if (object instanceof List)
 			return ((List<?>) object).size();
