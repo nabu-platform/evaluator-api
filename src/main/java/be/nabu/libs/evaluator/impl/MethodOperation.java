@@ -44,6 +44,8 @@ public class MethodOperation<T> extends BaseOperation<T> {
 	
 	private Map<Integer, Method> methods = new HashMap<Integer, Method>();
 	
+	private boolean caseSensitive = true;
+	
 	public MethodOperation(Class<?>...defaultClasses) {
 		this.defaultClasses.addAll(Arrays.asList(defaultClasses));
 	}
@@ -83,7 +85,7 @@ public class MethodOperation<T> extends BaseOperation<T> {
 		}
 		for (Class<?> clazz : classesToCheck) {
 			for (Method method : clazz.getDeclaredMethods()) {
-				if (Modifier.isStatic(method.getModifiers()) && method.getName().equals(methodName)) {
+				if (Modifier.isStatic(method.getModifiers()) && ((caseSensitive && method.getName().equals(methodName)) || (!caseSensitive && method.getName().equalsIgnoreCase(methodName)))) {
 					if (amountOfParams < 0 || method.getParameterTypes().length == amountOfParams) {
 						return method;
 					}
@@ -144,5 +146,11 @@ public class MethodOperation<T> extends BaseOperation<T> {
 		}
 		builder.append(")");
 		return builder.toString();
+	}
+	public boolean isCaseSensitive() {
+		return caseSensitive;
+	}
+	public void setCaseSensitive(boolean caseSensitive) {
+		this.caseSensitive = caseSensitive;
 	}
 }
