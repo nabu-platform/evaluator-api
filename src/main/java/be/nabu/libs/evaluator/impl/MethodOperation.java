@@ -141,7 +141,7 @@ public class MethodOperation<T> extends BaseOperation<T> {
 				builder.append("\"" + part.getContent().toString() + "\"");
 			}
 			else {
-				builder.append(part.getContent().toString());
+				builder.append(part.getContent() == null ? "null" : part.getContent().toString());
 			}
 		}
 		builder.append(")");

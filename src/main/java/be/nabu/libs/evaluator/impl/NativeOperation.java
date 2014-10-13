@@ -33,7 +33,7 @@ public class NativeOperation<T> extends BaseOperation<T> {
 			return "\"" + getParts().get(0).getContent().toString() + "\""; 
 		}
 		else {
-			return getParts().get(0).getContent().toString();
+			return getParts().get(0).getContent() == null ? "null" : getParts().get(0).getContent().toString();
 		}
 	}
 }

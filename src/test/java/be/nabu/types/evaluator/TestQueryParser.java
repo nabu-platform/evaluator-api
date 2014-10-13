@@ -57,6 +57,14 @@ public class TestQueryParser extends TestCase {
 		assertEquals("test", operation.evaluate(null));
 	}
 	
+	public void testNull() throws ParseException, EvaluationException {
+		Analyzer<Object> analyzer = new PathAnalyzer<Object>(new PlainOperationProvider());
+		QueryParser parser = QueryParser.getInstance();
+		Operation<Object> operation = analyzer.analyze(parser.parse("'test' == null"));
+		assertEquals("\"test\" == null", operation.toString());
+		assertFalse((Boolean) operation.evaluate(null));
+	}
+	
 	public void testNegativeNumbers() throws ParseException {
 		Analyzer<Object> analyzer = new PathAnalyzer<Object>(new PlainOperationProvider());
 		QueryParser parser = QueryParser.getInstance();

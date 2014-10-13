@@ -329,7 +329,7 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 				builder.append("\"" + part.getContent().toString() + "\"");
 			}
 			else if (part.getType().isNative()) {
-				builder.append(part.getContent().toString());
+				builder.append(part.getContent() == null ? "null" : part.getContent().toString());
 			}
 			else if (part.getType() == Type.OPERATION) {
 				// variable operations do not need to be in ()
