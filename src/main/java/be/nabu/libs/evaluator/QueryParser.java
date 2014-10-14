@@ -63,7 +63,7 @@ public class QueryParser {
 	 * Keeps track of any post-formatting you want to apply to certain parts, for example strip the quotes from a string
 	 * Basically the result of replaceAll($regex, "$1") is put in place of the actual result
 	 */
-	private Map<Type, String> post = new HashMap<Type, String>();
+	private Map<Type, List<String>> post = new HashMap<Type, List<String>>();
 	
 	protected QueryParser() {
 		parts.put(Type.STRING, "((?<!\\\\)\".*?(?<!\\\\)\"|(?<!\\\\)'.*?(?<!\\\\)')");
@@ -109,7 +109,7 @@ public class QueryParser {
 		parts.put(Type.EQUALS, "==|=");
 		parts.put(Type.NOT, "!");
 		
-		post.put(Type.STRING, "^(?:\"|')(.*)(?:\"|')");
+		post.put(Type.STRING, Arrays.asList("^(?:\"|')(.*)(?:\"|')", "\\\\(\")"));
 		// the lookahead for a scope opener is currently hardcoded!!!
 		identifier.put(Type.METHOD, "\\b[a-zA-Z]+[\\w.]*[\\w]*");
 	}
@@ -142,11 +142,11 @@ public class QueryParser {
 		this.lenient = lenient;
 	}
 
-	protected Map<Type, String> getPostFormatting() {
+	protected Map<Type, List<String>> getPostFormatting() {
 		return post;
 	}
 
-	protected void setPostFormatting(Map<Type, String> post) {
+	protected void setPostFormatting(Map<Type, List<String>> post) {
 		this.post = post;
 	}
 
@@ -255,8 +255,11 @@ public class QueryParser {
 						continue;
 					identified = true;
 					// post process if necessary
-					if (post.containsKey(type))
-						token = token.replaceAll(post.get(type), "$1");
+					if (post.containsKey(type)) {
+						for (String replace : post.get(type)) {
+							token = token.replaceAll(replace, "$1");
+						}
+					}
 					// parse it as a long
 					if (type == Type.NUMBER_INTEGER || type == Type.NUMBER_DECIMAL) {
 						// check if it's a negative number
