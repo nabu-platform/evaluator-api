@@ -1,5 +1,6 @@
 package be.nabu.libs.evaluator.impl;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -10,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import be.nabu.libs.converter.ConverterFactory;
 import be.nabu.libs.evaluator.EvaluationException;
 import be.nabu.libs.evaluator.Methods;
 import be.nabu.libs.evaluator.QueryPart;
@@ -86,7 +88,9 @@ public class MethodOperation<T> extends BaseOperation<T> {
 		for (Class<?> clazz : classesToCheck) {
 			for (Method method : clazz.getDeclaredMethods()) {
 				if (Modifier.isStatic(method.getModifiers()) && ((caseSensitive && method.getName().equals(methodName)) || (!caseSensitive && method.getName().equalsIgnoreCase(methodName)))) {
-					if (amountOfParams < 0 || method.getParameterTypes().length == amountOfParams) {
+					// if the last parameter is an array, we will dynamically create an array at runtime
+					// this is to support varargs
+					if (amountOfParams < 0 || method.getParameterTypes().length == amountOfParams || (method.getParameterTypes().length < amountOfParams && method.getParameterTypes().length > 0 && method.getParameterTypes()[method.getParameterTypes().length - 1].isArray())) {
 						return method;
 					}
 				}
@@ -107,6 +111,19 @@ public class MethodOperation<T> extends BaseOperation<T> {
 			Method method = getMethod(arguments.size());
 			if (method == null) {
 				throw new EvaluationException("The method '" + getParts().get(0).getContent() + "' can not be resolved");
+			}
+			// you got a method with fewer arguments than you have, so we need to create varargs
+			int amountOfParameters = method.getParameterTypes().length;
+			if (amountOfParameters < arguments.size()) {
+				Object [] newInstance = (Object[]) Array.newInstance(method.getParameterTypes()[amountOfParameters - 1].getComponentType(), arguments.size() - amountOfParameters + 1);
+				for (int i = amountOfParameters - 1; i < arguments.size(); i++) {
+					newInstance[i] = arguments.get(i);
+				}
+				arguments = arguments.subList(0, amountOfParameters - 1);
+				arguments.add(newInstance);
+			}
+			for (int i = 0; i < arguments.size(); i++) {
+				arguments.set(i, ConverterFactory.getInstance().getConverter().convert(arguments.get(i), method.getParameterTypes()[i]));
 			}
 			return method.invoke(null, arguments.toArray());
 		}

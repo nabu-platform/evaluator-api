@@ -95,6 +95,13 @@ public class TestQueryParser extends TestCase {
 		assertEquals("(test1 ++) + (test2 --)", operation.toString());
 	}
 	
+	public void testVarargs() throws ParseException, EvaluationException {
+		Analyzer<Object> analyzer = new PathAnalyzer<Object>(new PlainOperationProvider());
+		QueryParser parser = QueryParser.getInstance();
+		Operation<Object> operation = analyzer.analyze(parser.parse("choose(null, 'a')"));
+		assertEquals("a", operation.evaluate(null));
+	}
+	
 	public static class Test {
 		public String[] values;
 		private List<Test2> tests = new ArrayList<Test2>();

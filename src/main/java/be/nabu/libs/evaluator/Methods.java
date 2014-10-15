@@ -4,6 +4,15 @@ import java.util.List;
 
 public class Methods {
 
+	public static Object choose(Object...possiblities) {
+		for (int i = 0; i < possiblities.length; i++) {
+			if (possiblities[i] != null) {
+				return possiblities[i];
+			}
+		}
+		return null;
+	}
+	
 	public static boolean exists(Object object) {
 		return object != null;
 	}
