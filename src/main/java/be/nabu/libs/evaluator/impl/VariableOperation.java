@@ -97,7 +97,8 @@ public class VariableOperation<T> extends BaseOperation<T> {
 				object = listify(object);
 				// we assume that indexed operations will be fixed indexes so it will be a native operation
 				// this will not always be true but in a limited context (for which this is designed) this is the most likely scenario
-				if (((Operation<T>) getParts().get(offset + 1).getContent()).getType() == OperationType.NATIVE) {
+				// note that if it is _only_ a variable, we assume the variable is also a number, would be odd to have a boolean variable
+				if (((Operation<T>) getParts().get(offset + 1).getContent()).getType() == OperationType.NATIVE || ((Operation<T>) getParts().get(offset + 1).getContent()).getType() == OperationType.VARIABLE) {
 					Number index = (Number) ((Operation<T>) getParts().get(offset + 1).getContent()).evaluate(context);
 					object = ((List) object).get(index.intValue());
 				}
