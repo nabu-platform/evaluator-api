@@ -87,7 +87,7 @@ public class MethodOperation<T> extends BaseOperation<T> {
 		}
 		for (Class<?> clazz : classesToCheck) {
 			for (Method method : clazz.getDeclaredMethods()) {
-				if (Modifier.isStatic(method.getModifiers()) && ((caseSensitive && method.getName().equals(methodName)) || (!caseSensitive && method.getName().equalsIgnoreCase(methodName)))) {
+				if (Modifier.isPublic(method.getModifiers()) && Modifier.isStatic(method.getModifiers()) && ((caseSensitive && method.getName().equals(methodName)) || (!caseSensitive && method.getName().equalsIgnoreCase(methodName)))) {
 					// if the last parameter is an array, we will dynamically create an array at runtime
 					// this is to support varargs
 					if (amountOfParams < 0 || method.getParameterTypes().length == amountOfParams || (method.getParameterTypes().length < amountOfParams && method.getParameterTypes().length > 0 && method.getParameterTypes()[method.getParameterTypes().length - 1].isArray())) {
