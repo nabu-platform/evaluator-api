@@ -117,7 +117,7 @@ public class MethodOperation<T> extends BaseOperation<T> {
 			if (amountOfParameters < arguments.size()) {
 				Object [] newInstance = (Object[]) Array.newInstance(method.getParameterTypes()[amountOfParameters - 1].getComponentType(), arguments.size() - amountOfParameters + 1);
 				for (int i = amountOfParameters - 1; i < arguments.size(); i++) {
-					newInstance[i] = arguments.get(i);
+					newInstance[i - (amountOfParameters - 1)] = arguments.get(i);
 				}
 				arguments = arguments.subList(0, amountOfParameters - 1);
 				arguments.add(newInstance);
