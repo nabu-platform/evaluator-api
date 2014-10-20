@@ -109,7 +109,7 @@ public class QueryParser {
 		parts.put(Type.EQUALS, "==|=");
 		parts.put(Type.NOT, "!");
 		
-		post.put(Type.STRING, Arrays.asList("^(?:\"|')(.*)(?:\"|')", "\\\\(\")"));
+		post.put(Type.STRING, Arrays.asList("^(?:\"|')(.*)(?:\"|')", "\\\\(\")", "\\\\(')"));
 		// the lookahead for a scope opener is currently hardcoded!!!
 		identifier.put(Type.METHOD, "\\b[a-zA-Z]+[\\w.]*[\\w]*");
 	}
@@ -258,6 +258,9 @@ public class QueryParser {
 					if (post.containsKey(type)) {
 						for (String replace : post.get(type)) {
 							token = token.replaceAll(replace, "$1");
+						}
+						if (type == Type.STRING) {
+							token = token.replaceAll("(?<!\\\\)\\\\t", "\t").replaceAll("(?<!\\\\\\\\)\\\\n", "\n").replaceAll("(?<!\\\\\\\\)\\\\r", "\r").replaceAll("\\\\t", "\\t").replaceAll("\\\\n", "\\n").replaceAll("\\\\r", "\\r");
 						}
 					}
 					// parse it as a long

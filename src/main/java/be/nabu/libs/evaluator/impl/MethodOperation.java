@@ -90,7 +90,10 @@ public class MethodOperation<T> extends BaseOperation<T> {
 				if (Modifier.isPublic(method.getModifiers()) && Modifier.isStatic(method.getModifiers()) && ((caseSensitive && method.getName().equals(methodName)) || (!caseSensitive && method.getName().equalsIgnoreCase(methodName)))) {
 					// if the last parameter is an array, we will dynamically create an array at runtime
 					// this is to support varargs
-					if (amountOfParams < 0 || method.getParameterTypes().length == amountOfParams || (method.getParameterTypes().length < amountOfParams && method.getParameterTypes().length > 0 && method.getParameterTypes()[method.getParameterTypes().length - 1].isArray())) {
+					if (amountOfParams < 0 || method.getParameterTypes().length == amountOfParams 
+							|| (method.getParameterTypes().length < amountOfParams && method.getParameterTypes().length > 0 && method.getParameterTypes()[method.getParameterTypes().length - 1].isArray())
+							// if the method has 1 parameter more than requested but it is an array, could be empty varargs
+							|| (method.getParameterTypes().length == amountOfParams + 1 && method.getParameterTypes().length > 0 && method.getParameterTypes()[method.getParameterTypes().length - 1].isArray())) {
 						return method;
 					}
 				}
@@ -121,6 +124,11 @@ public class MethodOperation<T> extends BaseOperation<T> {
 				}
 				arguments = arguments.subList(0, amountOfParameters - 1);
 				arguments.add(newInstance);
+			}
+			// if the amount of parameters is one larger that the arguments, we are using varargs but there is no argument to put in there
+			// we need to add an empty array of the expected type
+			else if (amountOfParameters == arguments.size() + 1) {
+				arguments.add(Array.newInstance(method.getParameterTypes()[amountOfParameters - 1], 0));
 			}
 			for (int i = 0; i < arguments.size(); i++) {
 				arguments.set(i, ConverterFactory.getInstance().getConverter().convert(arguments.get(i), method.getParameterTypes()[i]));
