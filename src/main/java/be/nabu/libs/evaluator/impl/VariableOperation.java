@@ -29,33 +29,42 @@ public class VariableOperation<T> extends BaseOperation<T> {
 	}
 	
 	protected Object get(T context, String name) throws EvaluationException {
-		try {
+		// for collections it should be possible to access the indexes
+		if ((context instanceof Collection || context instanceof Object[]) && name.matches("\\$[0-9]+")) {
+			return listify(context).get(new Integer(name.substring(1)));
+		}
+		else if (context instanceof Map) {
+			return ((Map<?, ?>) context).get(name);
+		}
+		else {
 			try {
-				Method method = context.getClass().getDeclaredMethod("get" + name.substring(0, 1).toUpperCase() + name.substring(1));
-				if (!method.isAccessible()) {
-					method.setAccessible(true);
+				try {
+					Method method = context.getClass().getDeclaredMethod("get" + name.substring(0, 1).toUpperCase() + name.substring(1));
+					if (!method.isAccessible()) {
+						method.setAccessible(true);
+					}
+					return method.invoke(context);
 				}
-				return method.invoke(context);
-			}
-			catch (NoSuchMethodException e) {
-				Field field = context.getClass().getDeclaredField(name);
-				if (!field.isAccessible()) {
-					field.setAccessible(true);
+				catch (NoSuchMethodException e) {
+					Field field = context.getClass().getDeclaredField(name);
+					if (!field.isAccessible()) {
+						field.setAccessible(true);
+					}
+					return field.get(context);
 				}
-				return field.get(context);
 			}
-		}
-		catch (IllegalAccessException e) {
-			throw new EvaluationException(e);
-		}
-		catch (NoSuchFieldException e) {
-			throw new EvaluationException(e);
-		}
-		catch (SecurityException e) {
-			throw new EvaluationException(e);
-		}
-		catch (InvocationTargetException e) {
-			throw new EvaluationException(e);
+			catch (IllegalAccessException e) {
+				throw new EvaluationException(e);
+			}
+			catch (NoSuchFieldException e) {
+				throw new EvaluationException(e);
+			}
+			catch (SecurityException e) {
+				throw new EvaluationException(e);
+			}
+			catch (InvocationTargetException e) {
+				throw new EvaluationException(e);
+			}
 		}
 	}
 	
