@@ -66,6 +66,7 @@ public class QueryParser {
 	private Map<Type, List<String>> post = new HashMap<Type, List<String>>();
 	
 	protected QueryParser() {
+		// TODO: need to update the regex so "\\" is a valid string with a \ in it
 		parts.put(Type.STRING, "((?<!\\\\)\".*?(?<!\\\\)\"|(?<!\\\\)'.*?(?<!\\\\)')");
 		parts.put(Type.NUMBER_DECIMAL, "\\b[0-9]+\\.[0-9]+\\b");
 		parts.put(Type.NUMBER_INTEGER, "\\b[0-9]+\\b");
@@ -109,7 +110,7 @@ public class QueryParser {
 		parts.put(Type.EQUALS, "==|=");
 		parts.put(Type.NOT, "!");
 		
-		post.put(Type.STRING, Arrays.asList("^(?:\"|')(.*)(?:\"|')", "\\\\(\")", "\\\\(')"));
+		post.put(Type.STRING, Arrays.asList("^(?:\"|')(.*)(?:\"|')"));
 		// the lookahead for a scope opener is currently hardcoded!!!
 		identifier.put(Type.METHOD, "\\b[a-zA-Z]+[\\w.]*[\\w]*");
 	}
@@ -260,7 +261,8 @@ public class QueryParser {
 							token = token.replaceAll(replace, "$1");
 						}
 						if (type == Type.STRING) {
-							token = token.replaceAll("(?<!\\\\)\\\\t", "\t").replaceAll("(?<!\\\\\\\\)\\\\n", "\n").replaceAll("(?<!\\\\\\\\)\\\\r", "\r").replaceAll("\\\\t", "\\t").replaceAll("\\\\n", "\\n").replaceAll("\\\\r", "\\r");
+							token = token.replaceAll("(?<!\\\\)\\\\\"", "\"").replaceAll("(?<!\\\\)\\\\'", "'").replaceAll("(?<!\\\\)\\\\t", "\t").replaceAll("(?<!\\\\)\\\\n", "\n").replaceAll("(?<!\\\\)\\\\r", "\r").replaceAll("\\\\t", "\\t").replaceAll("\\\\n", "\\n").replaceAll("\\\\r", "\\r");
+							token = token.replace("\\\\", "\\");
 						}
 					}
 					// parse it as a long
