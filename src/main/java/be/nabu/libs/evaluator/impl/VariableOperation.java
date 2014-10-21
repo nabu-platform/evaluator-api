@@ -30,6 +30,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 	
 	protected Object get(T context, String name) throws EvaluationException {
 		// for collections it should be possible to access the indexes
+		// this allows for accessing indexes in a search
 		if ((context instanceof Collection || context instanceof Object[]) && name.matches("\\$[0-9]+")) {
 			return listify(context).get(new Integer(name.substring(1)));
 		}
@@ -131,19 +132,43 @@ public class VariableOperation<T> extends BaseOperation<T> {
 			}
 			else if (object instanceof Collection || object instanceof Object[]) {
 				List results = new ArrayList();
-				// we just need to evaluate each subpart and add the result to the list
-				for (Object child : listify(object)) {
-					if (child != null) {
-						Object childResult = evaluate((T) child, offset + 1);
-						if (childResult instanceof List)
-							results.addAll((List) childResult);
-						// otherwise, add it (even if null!)
-						else
-							results.add(childResult);
+				// hard check for indexed access or map access, same as in the get() method but specific for concatenation of results, not of searching (can merge this?)
+				String childPath = getParts().get(offset + 1).getContent().toString();
+				if (childPath.matches("\\$[0-9]+")) {
+					object = listify(object).get(new Integer(childPath.substring(1)));
+					if (offset == getParts().size() - 2) {
+						return object;
+					}
+					else {
+						return evaluate((T) object, offset + 2);
 					}
 				}
-				// return the list
-				return results;				
+				else {
+					// we just need to evaluate each subpart and add the result to the list
+					for (Object child : listify(object)) {
+						if (child != null) {
+							Object childResult = evaluate((T) child, offset + 1);
+							if (childResult instanceof List)
+								results.addAll((List) childResult);
+							// otherwise, add it (even if null!)
+							else
+								results.add(childResult);
+						}
+					}
+					// return the list
+					return results;
+				}
+			}
+			// same as in get()
+			else if (object instanceof Map) {
+				String childPath = getParts().get(offset + 1).getContent().toString();
+				Object child = ((Map) object).get(childPath);
+				if (offset == getParts().size() - 2) {
+					return child;
+				}
+				else {
+					return evaluate((T) child, offset + 2);
+				}
 			}
 			// otherwise, keep evaluating
 			else {
