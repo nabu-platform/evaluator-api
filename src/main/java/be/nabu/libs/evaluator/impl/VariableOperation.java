@@ -103,6 +103,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 			// if the next element is an operation, it is indexed
 			// if it returns a boolean, it has to be executed against each element in the list to filter
 			// otherwise if it's a number, you need access to a single element
+			boolean isConcatenatedResult = false;
 			while ((object instanceof Collection || object instanceof Object[]) && offset < getParts().size() - 1 && getParts().get(offset + 1).getType() == QueryPart.Type.OPERATION) {
 				object = listify(object);
 				// we assume that indexed operations will be fixed indexes so it will be a native operation
@@ -113,6 +114,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 					object = ((List) object).get(index.intValue());
 				}
 				else {
+					isConcatenatedResult = true;
 					List result = new ArrayList();
 					for (Object child : (List) object) {
 						// the operation must return a boolean for each item
@@ -130,20 +132,29 @@ public class VariableOperation<T> extends BaseOperation<T> {
 			if (offset == getParts().size() - 1) {
 				return object;
 			}
-			else if (object instanceof Collection || object instanceof Object[]) {
-				List results = new ArrayList();
-				// hard check for indexed access or map access, same as in the get() method but specific for concatenation of results, not of searching (can merge this?)
+			else {
 				String childPath = getParts().get(offset + 1).getContent().toString();
-				if (childPath.matches("\\$[0-9]+")) {
-					object = listify(object).get(new Integer(childPath.substring(1)));
+				if (childPath.startsWith("/")) {
+					childPath = childPath.substring(1);
+				}
+				// syntax wise you can do this:
+				// myarray/$1
+				// myarrayofarrays[$0 == 'test']/$1
+				// the first one is indexed access to the array, the second one builds a result set in memory, then selects all the $1 from that resultset
+				// the second basically returns a list of all possible "$1" values whereas the first selects the "$1" value for a specific array
+				// this is why we have the boolean isConcatenatedResult that indicates which situation we are in
+				if (((object instanceof Collection || object instanceof Object[]) && !isConcatenatedResult && childPath.matches("\\$[0-9]+")) || object instanceof Map) {
+					object = get((T) object, childPath);
 					if (offset == getParts().size() - 2) {
 						return object;
 					}
+					// increase the offset so further evaluations take this into account
 					else {
-						return evaluate((T) object, offset + 2);
+						offset++;
 					}
 				}
-				else {
+				if (object instanceof Collection || object instanceof Object[]) {
+					List results = new ArrayList();
 					// we just need to evaluate each subpart and add the result to the list
 					for (Object child : listify(object)) {
 						if (child != null) {
@@ -158,21 +169,10 @@ public class VariableOperation<T> extends BaseOperation<T> {
 					// return the list
 					return results;
 				}
-			}
-			// same as in get()
-			else if (object instanceof Map) {
-				String childPath = getParts().get(offset + 1).getContent().toString();
-				Object child = ((Map) object).get(childPath);
-				if (offset == getParts().size() - 2) {
-					return child;
-				}
+				// otherwise, keep evaluating
 				else {
-					return evaluate((T) child, offset + 2);
+					return evaluate((T) object, offset + 1);
 				}
-			}
-			// otherwise, keep evaluating
-			else {
-				return evaluate((T) object, offset + 1);
 			}
 		}
 		// it's not a list, just recursively evaluate
