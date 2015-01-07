@@ -275,6 +275,9 @@ public class PathAnalyzer<T> implements Analyzer<T> {
 				}
 			}
 			else if (token.getToken().getType() == Type.OPERATION) {
+				if (last != null && token.getNext() != null && token.getNext().getToken().getType() == Type.OPERATION && last.equals(token.getNext().getToken().getContent())) {
+					throw new ParseException("A dangling token was detected: " + token.getNext().getToken(), 0);
+				}
 				last = (Operation<T>) token.getToken().getContent();
 				token = token.getPrevious();
 			}
@@ -359,6 +362,9 @@ public class PathAnalyzer<T> implements Analyzer<T> {
 				}
 			}
 			else if (token.getToken().getType() == Type.OPERATION) {
+				if (last != null && token.getPrevious() != null && token.getPrevious().getToken().getType() == Type.OPERATION && last.equals(token.getPrevious().getToken().getContent())) {
+					throw new ParseException("A dangling token was detected: " + token.getPrevious().getToken(), 0);
+				}
 				last = (Operation<T>) token.getToken().getContent();
 				token = token.getNext();
 			}

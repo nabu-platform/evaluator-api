@@ -84,6 +84,28 @@ public class TestQueryParser extends TestCase {
 		}
 	}
 	
+	/**
+	 * Note: currently it is unsure whether this is a bug or a feature
+	 */
+	public void testAlternativeVariableSyntax() throws ParseException {
+		Analyzer<Object> analyzer = new PathAnalyzer<Object>(new PlainOperationProvider());
+		QueryParser parser = QueryParser.getInstance();
+		// in the path analyzer two subsequent variables are indistinguishable from a single variable separted with slashes
+		assertEquals("a/b", analyzer.analyze(parser.parse("a b")).toString());
+	}
+	
+	public void testDanglingQuery() throws ParseException {
+		Analyzer<Object> analyzer = new PathAnalyzer<Object>(new PlainOperationProvider());
+		QueryParser parser = QueryParser.getInstance();
+		try {
+			analyzer.analyze(parser.parse("else echo('test')"));
+			fail("This should fail during analysis");
+		}
+		catch (ParseException e) {
+			// expected
+		}
+	}
+	
 	public void testPrecedenceFormatting() throws ParseException {
 		Analyzer<Object> analyzer = new PathAnalyzer<Object>(new PlainOperationProvider());
 		QueryParser parser = QueryParser.getInstance();
