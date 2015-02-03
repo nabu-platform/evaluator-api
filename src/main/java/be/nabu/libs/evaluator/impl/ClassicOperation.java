@@ -359,7 +359,7 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 					}
 				}
 				else {
-					builder.append("(" + part.getContent().toString() + ")");
+					builder.append(part.getContent().toString());
 				}
 			}
 		}
