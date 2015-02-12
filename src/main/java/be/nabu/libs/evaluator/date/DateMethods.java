@@ -13,6 +13,14 @@ public class DateMethods {
 	public static CustomDate now() {
 		return new CustomDate();
 	}
+
+	/**
+	 * This method tries to deduce the format from the value
+	 * TODO: it should be expanded to inspect the value and (taking the region into account for default formats), attempt to guess the format
+	 */
+	public static CustomDate date(String value) throws ParseException {
+		return parse(value, "yyyy/MM/dd");
+	}
 	
 	public static String format(CustomDate date, String format) {
 		return format(date, format, TimeZone.getDefault());
