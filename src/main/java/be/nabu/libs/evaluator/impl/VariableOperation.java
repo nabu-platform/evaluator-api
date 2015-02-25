@@ -111,7 +111,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 				// note that if it is _only_ a variable, we assume the variable is also a number, would be odd to have a boolean variable
 				if (((Operation<T>) getParts().get(offset + 1).getContent()).getType() == OperationType.NATIVE || ((Operation<T>) getParts().get(offset + 1).getContent()).getType() == OperationType.VARIABLE) {
 					Number index = (Number) ((Operation<T>) getParts().get(offset + 1).getContent()).evaluate(context);
-					object = ((List) object).get(index.intValue());
+					object = index.intValue() < ((List) object).size() ? ((List) object).get(index.intValue()) : null;
 				}
 				else {
 					isConcatenatedResult = true;
