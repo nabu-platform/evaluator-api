@@ -37,7 +37,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 		else if (context instanceof Map) {
 			return ((Map<?, ?>) context).get(name);
 		}
-		else {
+		else if (context != null) {
 			try {
 				try {
 					Method method = context.getClass().getDeclaredMethod("get" + name.substring(0, 1).toUpperCase() + name.substring(1));
@@ -67,6 +67,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 				throw new EvaluationException(e);
 			}
 		}
+		return null;
 	}
 	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
