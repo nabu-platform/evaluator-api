@@ -3,12 +3,33 @@ package be.nabu.libs.evaluator.date;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.TimeZone;
 
 import be.nabu.libs.evaluator.QueryPart.Type;
 
 public class DateMethods {
+	
+	private static Map<String, String> dateFormats; static {
+		dateFormats = new HashMap<String, String>();
+		dateFormats.put("^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{1,3}$", "yyyy-MM-dd HH:mm:ss.S");
+		dateFormats.put("^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$", "yyyy-MM-dd HH:mm:ss");
+		dateFormats.put("^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$", "yyyy-MM-dd HH:mm");
+		dateFormats.put("^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}$", "yyyy-MM-dd HH");
+		dateFormats.put("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", "yyyy-MM-dd");
+		dateFormats.put("^[0-9]{4}-[0-9]{2}$", "yyyy-MM");
+		dateFormats.put("^[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{1,3}$", "HH:mm:ss.S");
+		dateFormats.put("^[0-9]{2}:[0-9]{2}:[0-9]{2}$", "HH:mm:ss");
+		dateFormats.put("^[0-9]{2}:[0-9]{2}$", "HH:mm");
+		dateFormats.put("^[0-9]{2}$", "HH");
+		
+		dateFormats.put("^[0-9]{4}/[0-9]{2}/[0-9]{2}$", "yyyy/MM/dd");
+		dateFormats.put("^[0-9]{4}/[0-9]{2}$", "yyyy/MM");
+		dateFormats.put("^[0-9]{2}/[0-9]{2}/[0-9]{4}$", "dd/MM/yyyy");
+		dateFormats.put("^[0-9]{2}/[0-9]{4}$", "MM/yyyy");
+	}
 	
 	public static CustomDate now() {
 		return new CustomDate();
@@ -16,10 +37,16 @@ public class DateMethods {
 
 	/**
 	 * This method tries to deduce the format from the value
-	 * TODO: it should be expanded to inspect the value and (taking the region into account for default formats), attempt to guess the format
 	 */
 	public static CustomDate date(String value) throws ParseException {
-		return parse(value, "yyyy/MM/dd");
+		if (value != null) {
+			for (String regex : dateFormats.keySet()) {
+				if (value.matches(regex)) {
+					return parse(value, dateFormats.get(regex));
+				}
+			}
+		}
+		return null;
 	}
 	
 	public static String format(CustomDate date, String format) {
