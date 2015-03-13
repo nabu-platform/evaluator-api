@@ -72,6 +72,14 @@ public class TestQueryParser extends TestCase {
 		assertEquals("0 + 1 + -2 + (3 * -1)", operation.toString());
 	}
 	
+	public void testStringification() throws ParseException, EvaluationException {
+		Analyzer<Object> analyzer = new PathAnalyzer<Object>(new PlainOperationProvider());
+		QueryParser parser = QueryParser.getInstance();
+		Operation<Object> operation = analyzer.analyze(parser.parse("5-  (2 + 3)"));
+		assertEquals(0, operation.evaluate(null));
+		assertEquals("5 - (2 + 3)", operation.toString());
+	}
+	
 	public void testWrongQuery() throws ParseException {
 		Analyzer<Object> analyzer = new PathAnalyzer<Object>(new PlainOperationProvider());
 		QueryParser parser = QueryParser.getInstance();
