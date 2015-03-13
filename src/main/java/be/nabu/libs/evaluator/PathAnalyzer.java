@@ -12,7 +12,7 @@ import be.nabu.libs.evaluator.api.OperationProvider.OperationType;
 
 public class PathAnalyzer<T> implements Analyzer<T> {
 	
-	private static List<Integer> reversedEvaluationTypes = Arrays.asList(new Integer [] {
+	public static List<Integer> reversedEvaluationTypes = Arrays.asList(new Integer [] {
 		Type.LOGICAL_AND.getPrecedence(),
 		Type.LOGICAL_OR.getPrecedence(),
 		Type.XOR.getPrecedence(),

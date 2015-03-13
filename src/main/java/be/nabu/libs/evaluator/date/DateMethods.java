@@ -88,4 +88,12 @@ public class DateMethods {
 		}
 		return result.toArray(new String[result.size()]);
 	}
+	
+	public static CustomDate increment(int amount, String type, CustomDate date) {
+		return CustomDate.increment(date, "" + Math.abs(amount) + type, amount < 0 ? Type.SUBSTRACT : Type.ADD);
+	}
+	
+	public static CustomDate decrement(int amount, String type, CustomDate date) {
+		return CustomDate.increment(date, "" + Math.abs(amount) + type, amount < 0 ? Type.ADD : Type.SUBSTRACT);
+	}
 }

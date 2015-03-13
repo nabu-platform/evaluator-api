@@ -8,6 +8,7 @@ import java.util.List;
 import be.nabu.libs.converter.ConverterFactory;
 import be.nabu.libs.converter.api.Converter;
 import be.nabu.libs.evaluator.EvaluationException;
+import be.nabu.libs.evaluator.PathAnalyzer;
 import be.nabu.libs.evaluator.QueryPart;
 import be.nabu.libs.evaluator.QueryPart.Type;
 import be.nabu.libs.evaluator.api.Operation;
@@ -355,7 +356,13 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 						builder.append("(" + part.getContent().toString() + ")");	
 					}
 					else {
-						builder.append(part.getContent().toString());
+						// if the right operand is an operation and it is NOT reverse analyzed, that must mean it has to be evaluated first, add () to it
+						if (i > 0 && !PathAnalyzer.reversedEvaluationTypes.contains(otherPrecedence)) {
+							builder.append("(" + part.getContent().toString() + ")");	
+						}
+						else {
+							builder.append(part.getContent().toString());
+						}
 					}
 				}
 				else {
