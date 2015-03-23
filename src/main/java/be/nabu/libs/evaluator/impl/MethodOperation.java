@@ -16,6 +16,7 @@ import be.nabu.libs.evaluator.EvaluationException;
 import be.nabu.libs.evaluator.Methods;
 import be.nabu.libs.evaluator.QueryPart;
 import be.nabu.libs.evaluator.QueryPart.Type;
+import be.nabu.libs.evaluator.annotations.MethodProviderClass;
 import be.nabu.libs.evaluator.api.Operation;
 import be.nabu.libs.evaluator.api.OperationProvider.OperationType;
 import be.nabu.libs.evaluator.base.BaseOperation;
@@ -78,7 +79,24 @@ public class MethodOperation<T> extends BaseOperation<T> {
 		String methodName = null;
 		// if you access a specific class, use that
 		if (fullName.contains(".")) {
-			classesToCheck.add(Class.forName(fullName.replaceAll("^(.*)\\.[^.]+$", "$1")));
+			String namespace = fullName.replaceAll("^(.*)\\.[^.]+$", "$1");
+			// check if it's a namespace of an existing class
+			for (Class<?> possibleClass : defaultClasses) {
+				MethodProviderClass annotation = possibleClass.getAnnotation(MethodProviderClass.class);
+				if (annotation != null && annotation.namespace() != null && !annotation.namespace().isEmpty()) {
+					if (namespace.equals(annotation.namespace())) {
+						classesToCheck.add(possibleClass);
+					}
+				}
+				else if (possibleClass.getName().replaceAll("\\.[^.]+$", "").equals(namespace)) {
+					classesToCheck.add(possibleClass);
+					break;
+				}
+			}
+			// if it's not in the listed classes, try to load it
+			if (classesToCheck.isEmpty()) {
+				classesToCheck.add(Class.forName(namespace));
+			}
 			methodName = fullName.replaceAll("^.*\\.([^.]+)$", "$1");
 		}
 		// otherwise, assume the default "methods" class

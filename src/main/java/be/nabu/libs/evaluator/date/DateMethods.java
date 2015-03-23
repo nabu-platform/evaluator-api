@@ -9,7 +9,9 @@ import java.util.Map;
 import java.util.TimeZone;
 
 import be.nabu.libs.evaluator.QueryPart.Type;
+import be.nabu.libs.evaluator.annotations.MethodProviderClass;
 
+@MethodProviderClass(namespace = "date")
 public class DateMethods {
 	
 	private static Map<String, String> dateFormats; static {
