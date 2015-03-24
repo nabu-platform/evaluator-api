@@ -72,12 +72,19 @@ public class VariableOperation<T> extends BaseOperation<T> {
 	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private Object evaluate(T context, int offset) throws EvaluationException {
-		String path = getParts().get(offset).getContent().toString();
-		// if it's not the first part, remove any leading "/"!
-		if (offset > 0 && path.startsWith("/"))
-			path = path.substring(1);
-
-		Object object = get(context, path);
+		Object object = null;
+		
+		// if you start off with an operation, you want to work from that result set
+		if (offset == 0 && getParts().get(offset).getType() == QueryPart.Type.OPERATION) {
+			object = ((Operation<T>) getParts().get(offset).getContent()).evaluate(context);
+		}
+		else {
+			String path = getParts().get(offset).getContent().toString();
+			// if it's not the first part, remove any leading "/"!
+			if (offset > 0 && path.startsWith("/"))
+				path = path.substring(1);
+			object = get(context, path);
+		}
 		
 		// it's null or you have reached the end, just return what you get
 		if (object == null || offset == getParts().size() - 1) {
@@ -214,7 +221,12 @@ public class VariableOperation<T> extends BaseOperation<T> {
 				builder.append(string);
 			}
 			else if (part.getType() == Type.OPERATION) {
-				builder.append("[" + part.getContent() + "]");
+				if (i == 0) {
+					builder.append(part.getContent());
+				}
+				else {
+					builder.append("[" + part.getContent() + "]");
+				}
 			}
 		}
 		return builder.toString();

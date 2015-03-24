@@ -5,6 +5,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 
@@ -52,20 +53,45 @@ public class DateMethods {
 	}
 	
 	public static String format(CustomDate date, String format) {
-		return format(date, format, TimeZone.getDefault());
+		return date == null ? null : format(date, format, TimeZone.getDefault());
+	}
+	
+	public static String format(CustomDate date, String format, TimeZone timezone, String language) {
+		if (date == null) {
+			return null;
+		}
+		SimpleDateFormat formatter = new SimpleDateFormat(format, new Locale(language));
+		formatter.setTimeZone(timezone);
+		return formatter.format(date.getDate());	
 	}
 	
 	public static String format(CustomDate date, String format, TimeZone timezone) {
+		if (date == null) {
+			return null;
+		}
 		SimpleDateFormat formatter = new SimpleDateFormat(format);
 		formatter.setTimeZone(timezone);
 		return formatter.format(date.getDate());
 	}
 	
 	public static CustomDate parse(String date, String format) throws ParseException {
-		return parse(date, format, TimeZone.getDefault());
+		return date == null ? null : parse(date, format, TimeZone.getDefault());
 	}
+	
 	public static CustomDate parse(String date, String format, TimeZone timezone) throws ParseException {
+		if (date == null) {
+			return null;
+		}
 		SimpleDateFormat formatter = new SimpleDateFormat(format);
+		formatter.setTimeZone(timezone);
+		return new CustomDate(formatter.parse(date));
+	}
+	
+	public static CustomDate parse(String date, String format, TimeZone timezone, String language) throws ParseException {
+		if (date == null) {
+			return null;
+		}
+		SimpleDateFormat formatter = new SimpleDateFormat(format, new Locale(language));
 		formatter.setTimeZone(timezone);
 		return new CustomDate(formatter.parse(date));
 	}

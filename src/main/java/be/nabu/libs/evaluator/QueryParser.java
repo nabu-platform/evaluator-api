@@ -94,7 +94,7 @@ public class QueryParser {
 		parts.put(Type.DECREASE, "--");
 		parts.put(Type.ADD, "\\+");
 		parts.put(Type.SUBSTRACT, "-");
-		parts.put(Type.DIVIDE, "/|\\bdiv\\b");;
+		parts.put(Type.DIVIDE, "/|\\bdiv\\b");
 		parts.put(Type.NOT_IN, "!#|\\bnot in\\b");
 		parts.put(Type.IN, "#|\\bin\\b");
 		parts.put(Type.GREATER_OR_EQUALS, ">=");

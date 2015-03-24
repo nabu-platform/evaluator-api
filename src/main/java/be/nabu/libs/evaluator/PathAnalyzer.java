@@ -134,6 +134,14 @@ public class PathAnalyzer<T> implements Analyzer<T> {
 				// the operation to hold the variable resolution
 				Operation<T> variableOperation = operationProvider.newOperation(OperationType.VARIABLE);
 				
+				// if this variable declaration was immediately preceeded by a method declaration, you are accessing the result set from there
+				// there is no other legal interpretation possible
+				// we also check the previous token because apart from the last operation, we need to check that no operators are in between there
+				if (last != null && last.getType() == OperationType.METHOD && token.getPrevious().getToken().getType() == QueryPart.Type.OPERATION) {
+					variableOperation.add(new QueryPart(Type.OPERATION, last));
+					token.getPrevious().remove();
+				}
+				
 				// a variable needs to be added to the operation
 				// an index start indicates an indexed access to the variable and is in the same operation
 				while (token != null && (token.getToken().getType() == Type.VARIABLE || token.getToken().getType() == Type.INDEX_START)) {
@@ -321,7 +329,7 @@ public class PathAnalyzer<T> implements Analyzer<T> {
 					token = token.getNext();
 					// the "last" operation is meant to convey the very last calculation operation generated from the tokens
 					// it will contain all the other operations where necessary
-					// however if we have detected an operator with a lower precedence, we are definately not at the "last" operation yet
+					// however if we have detected an operator with a lower precedence, we are definitely not at the "last" operation yet
 					// so we reset it to null to allow us to perform the check you see in the last "else" statement of this method
 					// this way we can detect wrongly formatted operations
 					last = null;
@@ -363,7 +371,7 @@ public class PathAnalyzer<T> implements Analyzer<T> {
 			}
 			else if (token.getToken().getType() == Type.OPERATION) {
 				if (last != null && token.getPrevious() != null && token.getPrevious().getToken().getType() == Type.OPERATION && last.equals(token.getPrevious().getToken().getContent())) {
-					throw new ParseException("A dangling token was detected: " + token.getPrevious().getToken(), 0);
+					throw new ParseException("A dangling token was detected: " + token.getPrevious().getToken() + " after " + last + " at precedence: " + precedence, 0);
 				}
 				last = (Operation<T>) token.getToken().getContent();
 				token = token.getNext();

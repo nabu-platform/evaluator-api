@@ -8,6 +8,7 @@ import junit.framework.TestCase;
 import be.nabu.libs.evaluator.EvaluationException;
 import be.nabu.libs.evaluator.PathAnalyzer;
 import be.nabu.libs.evaluator.QueryParser;
+import be.nabu.libs.evaluator.QueryPart;
 import be.nabu.libs.evaluator.api.Analyzer;
 import be.nabu.libs.evaluator.api.Operation;
 import be.nabu.libs.evaluator.impl.PlainOperationProvider;
@@ -132,10 +133,29 @@ public class TestQueryParser extends TestCase {
 		assertEquals("now() - 1", operation.toString());
 	}
 	
+	public void testMethodAccess() throws ParseException {
+		Analyzer<Object> analyzer = new PathAnalyzer<Object>(new PlainOperationProvider());
+		QueryParser parser = QueryParser.getInstance();
+		
+		// will try to access "myField" in the return value of the method
+		Operation<Object> operation = analyzer.analyze(parser.parse("something()/myField"));
+		assertEquals("something()/myField", operation.toString());
+		
+		// the same
+		operation = analyzer.analyze(parser.parse("something() /myField"));
+		assertEquals("something()/myField", operation.toString());
+		
+		// this will actually see the "/" as a divide operator 
+		List<QueryPart> parse = parser.parse("something()/ myField");
+		operation = analyzer.analyze(parse);
+		assertEquals("something() / myField", operation.toString());
+	}
+	
 	public void testVarargs() throws ParseException, EvaluationException {
 		Analyzer<Object> analyzer = new PathAnalyzer<Object>(new PlainOperationProvider());
 		QueryParser parser = QueryParser.getInstance();
-		Operation<Object> operation = analyzer.analyze(parser.parse("choose(null, 'a')"));
+		List<QueryPart> parse = parser.parse("choose(null, 'a')");
+		Operation<Object> operation = analyzer.analyze(parse);
 		assertEquals("a", operation.evaluate(null));
 	}
 	
