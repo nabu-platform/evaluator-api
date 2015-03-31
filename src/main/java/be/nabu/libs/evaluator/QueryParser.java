@@ -110,7 +110,7 @@ public class QueryParser {
 		parts.put(Type.EQUALS, "==|=");
 		parts.put(Type.NOT, "!");
 		
-		post.put(Type.STRING, Arrays.asList("^(?:\"|')(.*)(?:\"|')"));
+		post.put(Type.STRING, Arrays.asList("(?s)^(?:\"|')(.*)(?:\"|')"));
 		// the lookahead for a scope opener is currently hardcoded!!!
 		identifier.put(Type.METHOD, "\\b[a-zA-Z]+[\\w.]*[\\w]*");
 	}
@@ -124,7 +124,7 @@ public class QueryParser {
 				regex += "|";
 			regex += parts.get(type);
 		}
-		return "(?i)(" + regex + ")";
+		return "(?s)(?i)(" + regex + ")";
 	}
 	
 	protected Map<Type, String> getParts() {
@@ -209,28 +209,28 @@ public class QueryParser {
 	
 	/**
 	 * Tokenizes the query based on the regex and enforces the lenient if necessary
-	 * @param query
-	 * @return
-	 * @throws ParseException
 	 */
-	private List<String> tokenize(String query) throws ParseException {
+	public List<StringToken> tokenize(String query) throws ParseException {
 		String regex = getRegex();
 		Pattern pattern = Pattern.compile(regex);
 		Matcher matcher = pattern.matcher(query);
-		List<String> parts = new ArrayList<String>();
+		List<StringToken> parts = new ArrayList<StringToken>();
 		// keeps track of last parsed position, this is for "lenient" parsing
 		int last = -1;
 		while (matcher.find()) {
-			if (!lenient && matcher.start() > last + 1) {
-				String substring = query.substring(last + 1, matcher.start()).trim();
-				if (substring.length() > 0)
-					throw new ParseException("Invalid token detected in [" + (last + 1) + ", " + matcher.start() + "]: " + substring + " of '" + query + "'", last + 1);
+			String preamble = null;
+			if (matcher.start() > last + 1) {
+				preamble = query.substring(last + 1, matcher.start());	
 			}
-			parts.add(matcher.group());
+			if (!lenient && preamble != null && preamble.trim().length() > 0) {
+				throw new ParseException("Invalid token detected in [" + (last + 1) + ", " + matcher.start() + "]: '" + preamble + "' of '" + query + "'", last + 1);
+			}
+			parts.add(new StringToken(matcher.group(), preamble, matcher.start(), matcher.end()));
 			last = matcher.end() - 1;
 		}
-		if (parts.size() == 0)
+		if (parts.size() == 0) {
 			throw new ParseException("The query contains no identifiable tokens", 0);
+		}
 		return parts;
 	}
 	
@@ -242,17 +242,17 @@ public class QueryParser {
 	 * @throws RuleException 
 	 * @throws ParseException 
 	 */
-	private List<QueryPart> interpret(List<String> tokens) throws ParseException {
+	private List<QueryPart> interpret(List<StringToken> tokens) throws ParseException {
 		List<QueryPart> result = new ArrayList<QueryPart>();
 		
 		for (int i = 0; i < tokens.size(); i++) {
-			String token = tokens.get(i);
+			String token = tokens.get(i).getContent();
 			boolean identified = false;
 			for (Type type : parts.keySet()) {
 				// this is the one
-				if (token.matches(identifier.containsKey(type) ? identifier.get(type) : parts.get(type))) {
+				if (token.matches("(?s)" + (identifier.containsKey(type) ? identifier.get(type) : parts.get(type)))) {
 					// hardcoded check for method: need scope opener as next!
-					if (type == Type.METHOD && (i == tokens.size() - 1 || !tokens.get(i + 1).matches(identifier.containsKey(Type.SCOPE_START) ? identifier.get(Type.SCOPE_START) : parts.get(Type.SCOPE_START))))
+					if (type == Type.METHOD && (i == tokens.size() - 1 || !tokens.get(i + 1).getContent().matches(identifier.containsKey(Type.SCOPE_START) ? identifier.get(Type.SCOPE_START) : parts.get(Type.SCOPE_START))))
 						continue;
 					identified = true;
 					// post process if necessary
@@ -288,24 +288,24 @@ public class QueryParser {
 						if (type == Type.NUMBER_INTEGER) {
 							Long longValue = new Long(token);
 							if (longValue > Integer.MAX_VALUE || longValue < Integer.MIN_VALUE) {
-								result.add(new QueryPart(type, longValue));
+								result.add(new QueryPart(tokens.get(i), type, longValue));
 							}
 							else {
-								result.add(new QueryPart(type, new Integer(longValue.intValue())));
+								result.add(new QueryPart(tokens.get(i), type, new Integer(longValue.intValue())));
 							}
 						}
 						else {
-							result.add(new QueryPart(type, new Double(token)));
+							result.add(new QueryPart(tokens.get(i), type, new Double(token)));
 						}
 					}
 					else if (type == Type.BOOLEAN_FALSE)
-						result.add(new QueryPart(type, false));
+						result.add(new QueryPart(tokens.get(i), type, false));
 					else if (type == Type.BOOLEAN_TRUE)
-						result.add(new QueryPart(type, true));
+						result.add(new QueryPart(tokens.get(i), type, true));
 					else if (type == Type.NULL)
-						result.add(new QueryPart(type, null));
+						result.add(new QueryPart(tokens.get(i), type, null));
 					else
-						result.add(new QueryPart(type, token));
+						result.add(new QueryPart(tokens.get(i), type, token));
 					break;
 				}
 			}

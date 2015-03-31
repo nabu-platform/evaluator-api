@@ -105,10 +105,16 @@ public class QueryPart {
 	
 	private Object content;
 	private Type type;
+	private StringToken token;
 
-	public QueryPart(Type type, Object content) {
+	public QueryPart(StringToken token, Type type, Object content) {
+		this.token = token;
 		this.type = type;
 		this.content = content;
+	}
+	
+	public QueryPart(Type type, Object content) {
+		this(null, type, content);
 	}
 
 	public Object getContent() {
@@ -140,5 +146,9 @@ public class QueryPart {
 	
 	public void setContent(Object content) {
 		this.content = content;
+	}
+
+	public StringToken getToken() {
+		return token;
 	}
 }
