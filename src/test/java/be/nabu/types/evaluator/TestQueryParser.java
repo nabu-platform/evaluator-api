@@ -133,6 +133,20 @@ public class TestQueryParser extends TestCase {
 		assertEquals("now() - 1", operation.toString());
 	}
 	
+	public void testDollarOnlyMethodNames() throws ParseException {
+		Analyzer<Object> analyzer = new PathAnalyzer<Object>(new PlainOperationProvider());
+		QueryParser parser = QueryParser.getInstance();
+		Operation<Object> operation = analyzer.analyze(parser.parse("$(test)"));
+		assertEquals("$(test)", operation.toString());
+	}
+	
+	public void testDollarMethodNames() throws ParseException {
+		Analyzer<Object> analyzer = new PathAnalyzer<Object>(new PlainOperationProvider());
+		QueryParser parser = QueryParser.getInstance();
+		Operation<Object> operation = analyzer.analyze(parser.parse("$test()"));
+		assertEquals("$test()", operation.toString());
+	}
+	
 	public void testMethodAccess() throws ParseException {
 		Analyzer<Object> analyzer = new PathAnalyzer<Object>(new PlainOperationProvider());
 		QueryParser parser = QueryParser.getInstance();

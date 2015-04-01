@@ -74,7 +74,7 @@ public class QueryParser {
 		parts.put(Type.BOOLEAN_FALSE, "\\bfalse\\b");
 		parts.put(Type.NULL, "\\bnull\\b");
 		// a method must be followed by an opening scope and must start and end with a \w
-		parts.put(Type.METHOD, "\\b[a-zA-Z]+[\\w.]*[\\w]*(?=[\\s]*\\()");
+		parts.put(Type.METHOD, "([$]+|\\b[a-zA-Z]+)[\\w.]*[\\w]*(?=[\\s]*\\()");
 		// each "part" of the variable can start with a "@" or a "$" where "@" is for attribute and "$" is for an internal variable
 		// each variable name MUST begin with a character
 		parts.put(Type.VARIABLE, "((/|)(@|)(?:(?:\\b[a-zA-Z]+|\\$)[\\w]*|\\.\\.))+\\b");
@@ -112,7 +112,7 @@ public class QueryParser {
 		
 		post.put(Type.STRING, Arrays.asList("(?s)^(?:\"|')(.*)(?:\"|')"));
 		// the lookahead for a scope opener is currently hardcoded!!!
-		identifier.put(Type.METHOD, "\\b[a-zA-Z]+[\\w.]*[\\w]*");
+		identifier.put(Type.METHOD, "([$]+|\\b[a-zA-Z]+)[\\w.]*[\\w]*");
 	}
 	
 	public String getRegex() {
