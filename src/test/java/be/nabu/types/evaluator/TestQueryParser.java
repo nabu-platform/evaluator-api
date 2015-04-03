@@ -51,6 +51,13 @@ public class TestQueryParser extends TestCase {
 		assertEquals("my1", result);
 	}
 	
+	public void testMod() throws ParseException, EvaluationException {
+		Analyzer<Object> analyzer = new PathAnalyzer<Object>(new PlainOperationProvider());
+		QueryParser parser = QueryParser.getInstance();
+		Operation<Object> operation = analyzer.analyze(parser.parse("5 % 2"));
+		assertEquals(1, operation.evaluate(null));
+	}
+	
 	public void testOverload() throws ParseException, EvaluationException {
 		Analyzer<Object> analyzer = new PathAnalyzer<Object>(new PlainOperationProvider());
 		QueryParser parser = QueryParser.getInstance();
