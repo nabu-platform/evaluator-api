@@ -151,4 +151,9 @@ public class QueryPart {
 	public StringToken getToken() {
 		return token;
 	}
+	
+	@Override
+	public QueryPart clone() {
+		return new QueryPart(token, type, content);
+	}
 }
