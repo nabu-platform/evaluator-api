@@ -14,12 +14,9 @@ import java.util.Map;
 import be.nabu.libs.converter.ConverterFactory;
 import be.nabu.libs.evaluator.EvaluationException;
 import be.nabu.libs.evaluator.Methods;
-import be.nabu.libs.evaluator.QueryPart;
-import be.nabu.libs.evaluator.QueryPart.Type;
 import be.nabu.libs.evaluator.annotations.MethodProviderClass;
 import be.nabu.libs.evaluator.api.Operation;
-import be.nabu.libs.evaluator.api.OperationProvider.OperationType;
-import be.nabu.libs.evaluator.base.BaseOperation;
+import be.nabu.libs.evaluator.base.BaseMethodOperation;
 import be.nabu.libs.evaluator.date.DateMethods;
 
 /**
@@ -42,7 +39,7 @@ import be.nabu.libs.evaluator.date.DateMethods;
  * @author alex
  *
  */
-public class MethodOperation<T> extends BaseOperation<T> {
+public class MethodOperation<T> extends BaseMethodOperation<T> {
 
 	private List<Class<?>> defaultClasses = new ArrayList<Class<?>>();
 	
@@ -164,33 +161,7 @@ public class MethodOperation<T> extends BaseOperation<T> {
 			throw new EvaluationException(e);
 		}
 	}
-	@Override
-	public OperationType getType() {
-		return OperationType.METHOD;
-	}
-	
-	@Override
-	public String toString() {
-		StringBuilder builder = new StringBuilder();
-		// first the method name
-		builder.append((String) getParts().get(0).getContent());
-		// then the rest
-		builder.append("(");
-		for (int i = 1; i < getParts().size(); i++) {
-			QueryPart part = getParts().get(i);
-			if (i > 1) {
-				builder.append(", ");
-			}
-			if (part.getType() == Type.STRING) {
-				builder.append("\"" + part.getContent().toString() + "\"");
-			}
-			else {
-				builder.append(part.getContent() == null ? "null" : part.getContent().toString());
-			}
-		}
-		builder.append(")");
-		return builder.toString();
-	}
+
 	public boolean isCaseSensitive() {
 		return caseSensitive;
 	}
