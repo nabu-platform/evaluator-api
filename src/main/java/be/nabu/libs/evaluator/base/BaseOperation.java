@@ -63,4 +63,8 @@ abstract public class BaseOperation<T> implements Operation<T> {
 			tabs += "\t";
 		return tabs;
 	}
+	
+	protected String formatString(String string) {
+		return string.replaceAll("\n", "\\\\n").replaceAll("\r", "\\\\r");
+	}
 }

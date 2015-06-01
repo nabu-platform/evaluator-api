@@ -327,7 +327,7 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 				}
 			}
 			else if (part.getType() == Type.STRING) {
-				builder.append("\"" + part.getContent().toString() + "\"");
+				builder.append("\"" + formatString(part.getContent().toString()) + "\"");
 			}
 			else if (part.getType().isNative()) {
 				builder.append(part.getContent() == null ? "null" : part.getContent().toString());

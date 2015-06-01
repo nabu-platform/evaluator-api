@@ -33,8 +33,4 @@ abstract public class BaseMethodOperation<T> extends BaseOperation<T> {
 		builder.append(")");
 		return builder.toString();
 	}
-	
-	protected String formatString(String string) {
-		return string.replaceAll("\n", "\\n").replaceAll("\r", "\\r");
-	}
 }

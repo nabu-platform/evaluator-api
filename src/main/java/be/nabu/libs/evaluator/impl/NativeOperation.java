@@ -30,7 +30,7 @@ public class NativeOperation<T> extends BaseOperation<T> {
 	@Override
 	public String toString() {
 		if (getParts().get(0).getType() == Type.STRING) {
-			return "\"" + getParts().get(0).getContent().toString() + "\""; 
+			return "\"" + formatString(getParts().get(0).getContent().toString()) + "\""; 
 		}
 		else {
 			return getParts().get(0).getContent() == null ? "null" : getParts().get(0).getContent().toString();
