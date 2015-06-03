@@ -6,6 +6,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -17,6 +18,33 @@ import be.nabu.libs.evaluator.api.OperationProvider.OperationType;
 import be.nabu.libs.evaluator.base.BaseOperation;
 
 public class VariableOperation<T> extends BaseOperation<T> {
+	
+	private static Map<Class<?>, Map<String, Method>> getters = new HashMap<Class<?>, Map<String, Method>>();
+	
+	private static Method getGetter(Class<?> clazz, String name) {
+		if (!getters.containsKey(clazz)) {
+			synchronized(getters) {
+				if (!getters.containsKey(clazz)) {
+					getters.put(clazz, new HashMap<String, Method>());
+				}
+			}
+		}
+		if (!getters.get(clazz).containsKey(name)) {
+			synchronized(getters.get(clazz)) {
+				if (!getters.get(clazz).containsKey(name)) {
+					Method found = null;
+					for (Method method : clazz.getMethods()) {
+						if (method.getName().equals("get" + name.substring(0, 1).toUpperCase() + name.substring(1))) {
+							found = method;
+							break;
+						}
+					}
+					getters.get(clazz).put(name, found);
+				}
+			}
+		}
+		return getters.get(clazz).get(name);
+	}
 	
 	@Override
 	public Object evaluate(T context) throws EvaluationException {
@@ -39,14 +67,14 @@ public class VariableOperation<T> extends BaseOperation<T> {
 		}
 		else if (context != null) {
 			try {
-				try {
-					Method method = context.getClass().getDeclaredMethod("get" + name.substring(0, 1).toUpperCase() + name.substring(1));
+				Method method = getGetter(context.getClass(), name);
+				if (method != null) {
 					if (!method.isAccessible()) {
 						method.setAccessible(true);
 					}
 					return method.invoke(context);
 				}
-				catch (NoSuchMethodException e) {
+				else {
 					Field field = context.getClass().getDeclaredField(name);
 					if (!field.isAccessible()) {
 						field.setAccessible(true);

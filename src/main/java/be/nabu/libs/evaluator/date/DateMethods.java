@@ -3,6 +3,7 @@ package be.nabu.libs.evaluator.date;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -123,5 +124,9 @@ public class DateMethods {
 	
 	public static CustomDate decrement(int amount, String type, CustomDate date) {
 		return CustomDate.increment(date, "" + Math.abs(amount) + type, amount < 0 ? Type.ADD : Type.SUBSTRACT);
+	}
+	
+	public static long timestamp() {
+		return new Date().getTime();
 	}
 }
