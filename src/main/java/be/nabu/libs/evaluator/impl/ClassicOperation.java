@@ -66,7 +66,13 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 						else if (left == null) {
 							throw new NullPointerException("The left operand of an ADD method was null");
 						}
-						right = getConverter().convert(right, left.getClass());
+						// for strings: if the left is a string and the right can not be converted, use default toString() logic
+						if (left instanceof String && right != null && !getConverter().canConvert(right.getClass(), String.class)) {
+							right = right.toString();
+						}
+						else {
+							right = getConverter().convert(right, left.getClass());
+						}
 						// if the left one is a string, append
 						if (left instanceof String)
 							return ((String) left) + right;
@@ -327,7 +333,7 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 				}
 			}
 			else if (part.getType() == Type.STRING) {
-				builder.append("\"" + part.getContent().toString() + "\"");
+				builder.append("\"" + formatString(part.getContent().toString()) + "\"");
 			}
 			else if (part.getType().isNative()) {
 				builder.append(part.getContent() == null ? "null" : part.getContent().toString());

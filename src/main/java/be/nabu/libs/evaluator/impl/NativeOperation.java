@@ -30,7 +30,7 @@ public class NativeOperation<T> extends BaseOperation<T> {
 	@Override
 	public String toString() {
 		if (getParts().get(0).getType() == Type.STRING) {
-			String content = getParts().get(0).getContent().toString();
+			String content = formatString(getParts().get(0).getContent().toString());
 			// if the string contains a double quote and no single quotes, wrap it in a single instead
 			if (content.indexOf('"') >= 0 && content.indexOf('\'') < 0) {
 				return "'" + content + "'";

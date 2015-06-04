@@ -24,7 +24,7 @@ abstract public class BaseMethodOperation<T> extends BaseOperation<T> {
 				builder.append(", ");
 			}
 			if (part.getType() == Type.STRING) {
-				builder.append("\"" + part.getContent().toString() + "\"");
+				builder.append("\"" + formatString(part.getContent().toString()) + "\"");
 			}
 			else {
 				builder.append(part.getContent() == null ? "null" : part.getContent().toString());
