@@ -1,50 +1,22 @@
 package be.nabu.libs.evaluator.impl;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import be.nabu.libs.evaluator.ContextAccessorFactory;
 import be.nabu.libs.evaluator.EvaluationException;
 import be.nabu.libs.evaluator.QueryPart;
 import be.nabu.libs.evaluator.QueryPart.Type;
+import be.nabu.libs.evaluator.api.ContextAccessor;
 import be.nabu.libs.evaluator.api.Operation;
 import be.nabu.libs.evaluator.api.OperationProvider.OperationType;
 import be.nabu.libs.evaluator.base.BaseOperation;
 
 public class VariableOperation<T> extends BaseOperation<T> {
 	
-	private static Map<Class<?>, Map<String, Method>> getters = new HashMap<Class<?>, Map<String, Method>>();
-	
-	private static Method getGetter(Class<?> clazz, String name) {
-		if (!getters.containsKey(clazz)) {
-			synchronized(getters) {
-				if (!getters.containsKey(clazz)) {
-					getters.put(clazz, new HashMap<String, Method>());
-				}
-			}
-		}
-		if (!getters.get(clazz).containsKey(name)) {
-			synchronized(getters.get(clazz)) {
-				if (!getters.get(clazz).containsKey(name)) {
-					Method found = null;
-					for (Method method : clazz.getMethods()) {
-						if (method.getName().equals("get" + name.substring(0, 1).toUpperCase() + name.substring(1))) {
-							found = method;
-							break;
-						}
-					}
-					getters.get(clazz).put(name, found);
-				}
-			}
-		}
-		return getters.get(clazz).get(name);
-	}
+	private ContextAccessor<T> accessor = null;
 	
 	@Override
 	public Object evaluate(T context) throws EvaluationException {
@@ -54,48 +26,6 @@ public class VariableOperation<T> extends BaseOperation<T> {
 	@Override
 	public void finish() {
 		// do nothing
-	}
-	
-	protected Object get(T context, String name) throws EvaluationException {
-		// for collections it should be possible to access the indexes
-		// this allows for accessing indexes in a search
-		if ((context instanceof Collection || context instanceof Object[]) && name.matches("\\$[0-9]+")) {
-			return listify(context).get(new Integer(name.substring(1)));
-		}
-		else if (context instanceof Map) {
-			return ((Map<?, ?>) context).get(name);
-		}
-		else if (context != null) {
-			try {
-				Method method = getGetter(context.getClass(), name);
-				if (method != null) {
-					if (!method.isAccessible()) {
-						method.setAccessible(true);
-					}
-					return method.invoke(context);
-				}
-				else {
-					Field field = context.getClass().getDeclaredField(name);
-					if (!field.isAccessible()) {
-						field.setAccessible(true);
-					}
-					return field.get(context);
-				}
-			}
-			catch (IllegalAccessException e) {
-				throw new EvaluationException(e);
-			}
-			catch (NoSuchFieldException e) {
-				throw new EvaluationException(e);
-			}
-			catch (SecurityException e) {
-				throw new EvaluationException(e);
-			}
-			catch (InvocationTargetException e) {
-				throw new EvaluationException(e);
-			}
-		}
-		return null;
 	}
 	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
@@ -111,7 +41,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 			// if it's not the first part, remove any leading "/"!
 			if (offset > 0 && path.startsWith("/"))
 				path = path.substring(1);
-			object = get(context, path);
+			object = getAccessor().get(context, path);
 		}
 		
 		// it's null or you have reached the end, just return what you get
@@ -141,7 +71,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 			// otherwise if it's a number, you need access to a single element
 			boolean isConcatenatedResult = false;
 			while ((object instanceof Collection || object instanceof Object[]) && offset < getParts().size() - 1 && getParts().get(offset + 1).getType() == QueryPart.Type.OPERATION) {
-				object = listify(object);
+				object = JavaContextAccessor.listify(object);
 				// we assume that indexed operations will be fixed indexes so it will be a native operation
 				// this will not always be true but in a limited context (for which this is designed) this is the most likely scenario
 				// note that if it is _only_ a variable, we assume the variable is also a number, would be odd to have a boolean variable
@@ -180,7 +110,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 				// the second basically returns a list of all possible "$1" values whereas the first selects the "$1" value for a specific array
 				// this is why we have the boolean isConcatenatedResult that indicates which situation we are in
 				if (((object instanceof Collection || object instanceof Object[]) && !isConcatenatedResult && childPath.matches("\\$[0-9]+")) || object instanceof Map) {
-					object = get((T) object, childPath);
+					object = getAccessor().get((T) object, childPath);
 					if (offset == getParts().size() - 2) {
 						return object;
 					}
@@ -192,7 +122,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 				if (object instanceof Collection || object instanceof Object[]) {
 					List results = new ArrayList();
 					// we just need to evaluate each subpart and add the result to the list
-					for (Object child : listify(object)) {
+					for (Object child : JavaContextAccessor.listify(object)) {
 						if (child != null) {
 							Object childResult = evaluate((T) child, offset + 1);
 							if (childResult instanceof List)
@@ -217,20 +147,6 @@ public class VariableOperation<T> extends BaseOperation<T> {
 		}
 	}
 
-	@SuppressWarnings({ "unchecked", "rawtypes" })
-	private List listify(Object object) {
-		if (object instanceof List) {
-			return (List) object;
-		}
-		else if (object instanceof Object[]) {
-			return Arrays.asList((Object[]) object);
-		}
-		else if (object instanceof Collection) {
-			return new ArrayList((Collection) object);
-		}
-		throw new IllegalArgumentException("The object can not be converted to a list");
-	}
-	
 	@Override
 	public OperationType getType() {
 		return OperationType.VARIABLE;
@@ -259,4 +175,17 @@ public class VariableOperation<T> extends BaseOperation<T> {
 		}
 		return builder.toString();
 	}
+
+	@SuppressWarnings("unchecked")
+	public ContextAccessor<T> getAccessor() {
+		if (accessor == null) {
+			accessor = (ContextAccessor<T>) ContextAccessorFactory.getInstance().getAccessor();
+		}
+		return accessor;
+	}
+
+	public void setAccessor(ContextAccessor<T> accessor) {
+		this.accessor = accessor;
+	}
+	
 }
