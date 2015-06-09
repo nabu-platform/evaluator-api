@@ -109,7 +109,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 				// the first one is indexed access to the array, the second one builds a result set in memory, then selects all the $1 from that resultset
 				// the second basically returns a list of all possible "$1" values whereas the first selects the "$1" value for a specific array
 				// this is why we have the boolean isConcatenatedResult that indicates which situation we are in
-				if (((object instanceof Collection || object instanceof Object[]) && !isConcatenatedResult && childPath.matches("\\$[0-9]+")) || object instanceof Map) {
+				while (((object instanceof Collection || object instanceof Object[]) && !isConcatenatedResult && childPath.matches("\\$[0-9]+")) || object instanceof Map) {
 					object = getAccessor().get((T) object, childPath);
 					if (offset == getParts().size() - 2) {
 						return object;
@@ -117,6 +117,10 @@ public class VariableOperation<T> extends BaseOperation<T> {
 					// increase the offset so further evaluations take this into account
 					else {
 						offset++;
+						childPath = getParts().get(offset + 1).getContent().toString();
+						if (childPath.startsWith("/")) {
+							childPath = childPath.substring(1);
+						}
 					}
 				}
 				if (object instanceof Collection || object instanceof Object[]) {
