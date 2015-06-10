@@ -28,6 +28,11 @@ public class VariableOperation<T> extends BaseOperation<T> {
 		// do nothing
 	}
 	
+	@SuppressWarnings("unchecked")
+	protected boolean isNumericAccess(int offset) {
+		return ((Operation<T>) getParts().get(offset).getContent()).getType() == OperationType.NATIVE || ((Operation<T>) getParts().get(offset).getContent()).getType() == OperationType.VARIABLE;
+	}
+	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private Object evaluate(T context, int offset) throws EvaluationException {
 		Object object = null;
@@ -75,7 +80,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 				// we assume that indexed operations will be fixed indexes so it will be a native operation
 				// this will not always be true but in a limited context (for which this is designed) this is the most likely scenario
 				// note that if it is _only_ a variable, we assume the variable is also a number, would be odd to have a boolean variable
-				if (((Operation<T>) getParts().get(offset + 1).getContent()).getType() == OperationType.NATIVE || ((Operation<T>) getParts().get(offset + 1).getContent()).getType() == OperationType.VARIABLE) {
+				if (isNumericAccess(offset + 1)) {
 					Number index = (Number) ((Operation<T>) getParts().get(offset + 1).getContent()).evaluate(context);
 					object = index.intValue() < ((List) object).size() ? ((List) object).get(index.intValue()) : null;
 				}

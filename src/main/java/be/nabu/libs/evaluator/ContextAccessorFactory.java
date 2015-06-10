@@ -66,4 +66,17 @@ public class ContextAccessorFactory {
 		return accessor;
 	}
 	
+	@SuppressWarnings("unchecked")
+	public <T> ContextAccessor<T> getAccessor(Class<T> type) {
+		ContextAccessor<?> closest = null;
+		for (ContextAccessor<?> accessor : getAccessors()) {
+			if (accessor.getContextType().isAssignableFrom(type)) {
+				if (closest == null || closest.getContextType().isAssignableFrom(accessor.getContextType())) {
+					closest = accessor;
+				}
+			}
+		}
+		return (ContextAccessor<T>) closest;
+	}
+	
 }
