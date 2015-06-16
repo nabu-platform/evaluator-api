@@ -4,6 +4,9 @@ public class QueryPart {
 	
 	public enum Type {
 		
+		// for lenient parsing
+		UNKNOWN,
+		
 		// types that have to be interpreted
 		VARIABLE,
 		METHOD,

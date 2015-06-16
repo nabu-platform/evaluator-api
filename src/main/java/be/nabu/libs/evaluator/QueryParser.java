@@ -167,7 +167,7 @@ public class QueryParser {
 		
 	public List<QueryPart> parse(String query) throws ParseException {
 		if (!parsed.containsKey(query)) {
-			List<QueryPart> tokens = interpret(tokenize(query));
+			List<QueryPart> tokens = interpret(tokenize(query), false);
 			validate(tokens);
 			parsed.put(query, tokens);
 		}
@@ -242,7 +242,7 @@ public class QueryParser {
 	 * @throws RuleException 
 	 * @throws ParseException 
 	 */
-	private List<QueryPart> interpret(List<StringToken> tokens) throws ParseException {
+	public List<QueryPart> interpret(List<StringToken> tokens, boolean lenient) throws ParseException {
 		List<QueryPart> result = new ArrayList<QueryPart>();
 		
 		for (int i = 0; i < tokens.size(); i++) {
@@ -309,8 +309,14 @@ public class QueryParser {
 					break;
 				}
 			}
-			if (!identified)
-				throw new ParseException("Unknown token: " + token, 0);
+			if (!identified) {
+				if (lenient) {
+					result.add(new QueryPart(tokens.get(i), Type.UNKNOWN, tokens.get(i).getContent()));
+				}
+				else {
+					throw new ParseException("Unknown token: " + token, 0);
+				}
+			}
 		}
 		return result;
 	}
