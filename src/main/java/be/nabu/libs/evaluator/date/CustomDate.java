@@ -10,7 +10,7 @@ import be.nabu.libs.evaluator.QueryPart.Type;
 import be.nabu.libs.evaluator.api.operations.Minus;
 import be.nabu.libs.evaluator.api.operations.Plus;
 
-public class CustomDate implements Plus, Minus {
+public class CustomDate implements Plus, Minus, Comparable<CustomDate> {
 	
 	private Date date;
 
@@ -119,6 +119,11 @@ public class CustomDate implements Plus, Minus {
 				return Calendar.MILLISECOND;
 		}
 		throw new IllegalArgumentException("Unsupported calendar field: " + name);
+	}
+
+	@Override
+	public int compareTo(CustomDate other) {
+		return date.compareTo(other.date);
 	}
 
 }
