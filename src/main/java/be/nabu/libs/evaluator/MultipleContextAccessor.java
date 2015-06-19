@@ -20,6 +20,9 @@ public class MultipleContextAccessor implements ContextAccessor<Object> {
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
 	public boolean has(Object context, String name) throws EvaluationException {
+		if (context == null) {
+			return false;
+		}
 		ContextAccessor accessor = getAccessor(context);
 		if (accessor == null) {
 			throw new EvaluationException("No accessor for: " + context);
@@ -30,6 +33,9 @@ public class MultipleContextAccessor implements ContextAccessor<Object> {
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
 	public Object get(Object context, String name) throws EvaluationException {
+		if (context == null) {
+			return null;
+		}
 		ContextAccessor accessor = getAccessor(context);
 		if (accessor == null) {
 			throw new EvaluationException("No accessor for: " + context);
