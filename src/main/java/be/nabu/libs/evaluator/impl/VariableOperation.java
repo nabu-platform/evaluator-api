@@ -1,6 +1,7 @@
 package be.nabu.libs.evaluator.impl;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -17,10 +18,12 @@ import be.nabu.libs.evaluator.base.BaseOperation;
 public class VariableOperation<T> extends BaseOperation<T> {
 	
 	private ContextAccessor<T> accessor = null;
+	private boolean allowParentLookup = true;
 	
+	@SuppressWarnings("unchecked")
 	@Override
 	public Object evaluate(T context) throws EvaluationException {
-		return evaluate(context, 0);
+		return evaluate(Arrays.asList(context), 0);
 	}
 	
 	@Override
@@ -34,19 +37,39 @@ public class VariableOperation<T> extends BaseOperation<T> {
 	}
 	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	private Object evaluate(T context, int offset) throws EvaluationException {
+	private Object evaluate(List<T> contexts, int offset) throws EvaluationException {
 		Object object = null;
 		
+		T context;
+		int contextIndex = contexts.size() - 1;
 		// if you start off with an operation, you want to work from that result set
 		if (offset == 0 && getParts().get(offset).getType() == QueryPart.Type.OPERATION) {
+			context = contexts.get(contextIndex); 
 			object = ((Operation<T>) getParts().get(offset).getContent()).evaluate(context);
 		}
 		else {
 			String path = getParts().get(offset).getContent().toString();
+			while (path.startsWith("../") || path.startsWith("./")) {
+				if (path.startsWith("./")) {
+					path = path.substring("./".length());
+				}
+				else {
+					if (contextIndex == 0) {
+						throw new EvaluationException("Referencing an invalid context");
+					}
+					path = path.substring("../".length());
+					contextIndex--;
+				}
+			}
+			context = contexts.get(contextIndex);
 			// if it's not the first part, remove any leading "/"!
 			if (offset > 0 && path.startsWith("/"))
 				path = path.substring(1);
 			object = getAccessor().get(context, path);
+			while (offset == 0 && object == null && allowParentLookup && contextIndex > 0) {
+				contextIndex--;
+				object = getAccessor().get(context, path);	
+			}
 		}
 		
 		// it's null or you have reached the end, just return what you get
@@ -56,7 +79,15 @@ public class VariableOperation<T> extends BaseOperation<T> {
 		else if (object instanceof Map) {
 			// you have defined an index on the map, get a specific key
 			while (object instanceof Map && offset < getParts().size() - 1 && getParts().get(offset + 1).getType() == QueryPart.Type.OPERATION) {
-				Object key = ((Operation<T>) getParts().get(offset + 1).getContent()).evaluate(context);
+				Object key;
+				if (getParts().get(offset + 1).getContent() instanceof VariableOperation && allowParentLookup) {
+					List<T> newContextList = new ArrayList<T>(contexts.subList(0, contextIndex + 1));
+					newContextList.add(context);
+					key = ((VariableOperation<T>) getParts().get(offset + 1).getContent()).evaluate(newContextList, 0);
+				}
+				else {
+					key = ((Operation<T>) getParts().get(offset + 1).getContent()).evaluate(context);
+				}
 				object = ((Map) object).get(key);
 				offset++;
 			}
@@ -66,7 +97,9 @@ public class VariableOperation<T> extends BaseOperation<T> {
 			}
 			// otherwise, keep evaluating
 			else {
-				return evaluate((T) object, offset + 1);
+				List<T> newContextList = new ArrayList<T>(contexts.subList(0, contextIndex + 1));
+				newContextList.add((T) object);
+				return evaluate(newContextList, offset + 1);
 			}
 		}
 		// check if it's a list
@@ -133,7 +166,9 @@ public class VariableOperation<T> extends BaseOperation<T> {
 					// we just need to evaluate each subpart and add the result to the list
 					for (Object child : JavaContextAccessor.listify(object)) {
 						if (child != null) {
-							Object childResult = evaluate((T) child, offset + 1);
+							List<T> newContextList = new ArrayList<T>(contexts.subList(0, contextIndex + 1));
+							newContextList.add((T) child);
+							Object childResult = evaluate(newContextList, offset + 1);
 							if (childResult instanceof List)
 								results.addAll((List) childResult);
 							// otherwise, add it (even if null!)
@@ -146,13 +181,17 @@ public class VariableOperation<T> extends BaseOperation<T> {
 				}
 				// otherwise, keep evaluating
 				else {
-					return evaluate((T) object, offset + 1);
+					List<T> newContextList = new ArrayList<T>(contexts.subList(0, contextIndex + 1));
+					newContextList.add((T) object);
+					return evaluate(newContextList, offset + 1);
 				}
 			}
 		}
 		// it's not a list, just recursively evaluate
 		else {
-			return evaluate((T) object, offset + 1);
+			List<T> newContextList = new ArrayList<T>(contexts.subList(0, contextIndex + 1));
+			newContextList.add((T) object);
+			return evaluate(newContextList, offset + 1);
 		}
 	}
 
