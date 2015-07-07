@@ -17,7 +17,6 @@ import be.nabu.libs.evaluator.Methods;
 import be.nabu.libs.evaluator.annotations.MethodProviderClass;
 import be.nabu.libs.evaluator.api.Operation;
 import be.nabu.libs.evaluator.base.BaseMethodOperation;
-import be.nabu.libs.evaluator.date.DateMethods;
 
 /**
  * All the methods that can be used must be static
@@ -51,7 +50,7 @@ public class MethodOperation<T> extends BaseMethodOperation<T> {
 		this.defaultClasses.addAll(Arrays.asList(defaultClasses));
 	}
 	public MethodOperation() {
-		this(Methods.class, DateMethods.class);
+		this(Methods.class);
 	}
 	
 	@Override
