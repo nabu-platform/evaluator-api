@@ -3,6 +3,7 @@ package be.nabu.libs.evaluator;
 import java.util.Collection;
 
 import be.nabu.libs.evaluator.api.ContextAccessor;
+import be.nabu.libs.evaluator.impl.JavaContextAccessor;
 
 public class MultipleContextAccessor implements ContextAccessor<Object> {
 
@@ -55,7 +56,7 @@ public class MultipleContextAccessor implements ContextAccessor<Object> {
 				}
 			}
 		}
-		return mostSpecific;
+		return mostSpecific == null ? new JavaContextAccessor() : mostSpecific;
 	}
 	
 }
