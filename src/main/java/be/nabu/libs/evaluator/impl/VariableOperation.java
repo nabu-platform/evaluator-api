@@ -109,7 +109,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 			// otherwise if it's a number, you need access to a single element
 			boolean isConcatenatedResult = false;
 			while ((object instanceof Collection || object instanceof Object[]) && offset < getParts().size() - 1 && getParts().get(offset + 1).getType() == QueryPart.Type.OPERATION) {
-				object = JavaContextAccessor.listify(object);
+				object = CollectionContextAccessor.listify(object);
 				// we assume that indexed operations will be fixed indexes so it will be a native operation
 				// this will not always be true but in a limited context (for which this is designed) this is the most likely scenario
 				// note that if it is _only_ a variable, we assume the variable is also a number, would be odd to have a boolean variable
@@ -164,7 +164,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 				if (object instanceof Collection || object instanceof Object[]) {
 					List results = new ArrayList();
 					// we just need to evaluate each subpart and add the result to the list
-					for (Object child : JavaContextAccessor.listify(object)) {
+					for (Object child : CollectionContextAccessor.listify(object)) {
 						if (child != null) {
 							List<T> newContextList = new ArrayList<T>(contexts.subList(0, contextIndex + 1));
 							newContextList.add((T) child);

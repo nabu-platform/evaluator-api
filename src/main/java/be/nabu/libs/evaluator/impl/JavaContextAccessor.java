@@ -3,11 +3,7 @@ package be.nabu.libs.evaluator.impl;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import be.nabu.libs.evaluator.EvaluationException;
@@ -49,13 +45,7 @@ public class JavaContextAccessor implements ContextAccessor<Object> {
 
 	@Override
 	public boolean has(Object context, String name) throws EvaluationException {
-		if ((context instanceof Collection || context instanceof Object[]) && name.matches("\\$[0-9]+")) {
-			return listify(context).size() > new Integer(name.substring(1));
-		}
-		else if (context instanceof Map) {
-			return ((Map<?, ?>) context).containsKey(name);
-		}
-		else if (context != null) {
+		if (context != null) {
 			try {
 				Method method = getGetter(context.getClass(), name);
 				if (method != null) {
@@ -77,15 +67,7 @@ public class JavaContextAccessor implements ContextAccessor<Object> {
 
 	@Override
 	public Object get(Object context, String name) throws EvaluationException {
-		// for collections it should be possible to access the indexes
-		// this allows for accessing indexes in a search
-		if ((context instanceof Collection || context instanceof Object[]) && name.matches("\\$[0-9]+")) {
-			return listify(context).get(new Integer(name.substring(1)));
-		}
-		else if (context instanceof Map) {
-			return ((Map<?, ?>) context).get(name);
-		}
-		else if (context != null) {
+		if (context != null) {
 			try {
 				Method method = getGetter(context.getClass(), name);
 				if (method != null) {
@@ -116,20 +98,6 @@ public class JavaContextAccessor implements ContextAccessor<Object> {
 			}
 		}
 		return null;
-	}
-	
-	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public static List listify(Object object) {
-		if (object instanceof List) {
-			return (List) object;
-		}
-		else if (object instanceof Object[]) {
-			return Arrays.asList((Object[]) object);
-		}
-		else if (object instanceof Collection) {
-			return new ArrayList((Collection) object);
-		}
-		throw new IllegalArgumentException("The object can not be converted to a list");
 	}
 	
 }
