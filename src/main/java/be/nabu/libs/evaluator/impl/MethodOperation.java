@@ -46,6 +46,8 @@ public class MethodOperation<T> extends BaseMethodOperation<T> {
 	
 	private boolean caseSensitive = true;
 	
+	private boolean allowNullCompletion = true;
+	
 	public MethodOperation(Class<?>...defaultClasses) {
 		this.defaultClasses.addAll(Arrays.asList(defaultClasses));
 	}
@@ -100,6 +102,7 @@ public class MethodOperation<T> extends BaseMethodOperation<T> {
 			classesToCheck.addAll(defaultClasses);
 			methodName = fullName;
 		}
+		Method moreArgumentsMethod = null;
 		for (Class<?> clazz : classesToCheck) {
 			for (Method method : clazz.getDeclaredMethods()) {
 				if (Modifier.isPublic(method.getModifiers()) && Modifier.isStatic(method.getModifiers()) && ((caseSensitive && method.getName().equals(methodName)) || (!caseSensitive && method.getName().equalsIgnoreCase(methodName)))) {
@@ -111,10 +114,14 @@ public class MethodOperation<T> extends BaseMethodOperation<T> {
 							|| (method.getParameterTypes().length == amountOfParams + 1 && method.getParameterTypes().length > 0 && method.getParameterTypes()[method.getParameterTypes().length - 1].isArray())) {
 						return method;
 					}
+					// if the method has more arguments but we allow null completion, choose it
+					else if (allowNullCompletion && amountOfParams >= 0 && method.getParameterTypes().length > amountOfParams) {
+						moreArgumentsMethod = method;
+					}
 				}
 			}
 		}
-		return null;
+		return moreArgumentsMethod;
 	}
 	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
@@ -130,8 +137,8 @@ public class MethodOperation<T> extends BaseMethodOperation<T> {
 			if (method == null) {
 				throw new EvaluationException("The method '" + getParts().get(0).getContent() + "' can not be resolved");
 			}
-			// you got a method with fewer arguments than you have, so we need to create varargs
 			int amountOfParameters = method.getParameterTypes().length;
+			// if we have fewer parameters than we have arguments, we're dealing with varargs
 			if (amountOfParameters < arguments.size()) {
 				Object [] newInstance = (Object[]) Array.newInstance(method.getParameterTypes()[amountOfParameters - 1].getComponentType(), arguments.size() - amountOfParameters + 1);
 				for (int i = amountOfParameters - 1; i < arguments.size(); i++) {
@@ -142,8 +149,14 @@ public class MethodOperation<T> extends BaseMethodOperation<T> {
 			}
 			// if the amount of parameters is one larger that the arguments, we are using varargs but there is no argument to put in there
 			// we need to add an empty array of the expected type
-			else if (amountOfParameters == arguments.size() + 1) {
+			else if (amountOfParameters == arguments.size() + 1 && method.isVarArgs()) {
 				arguments.add(Array.newInstance(method.getParameterTypes()[amountOfParameters - 1], 0));
+			}
+			// if on the other hand we have fewer arguments than parameters, fill up with null
+			else if (amountOfParameters > arguments.size()) {
+				for (int i = arguments.size(); i < amountOfParameters; i++) {
+					arguments.add(null);
+				}
 			}
 			for (int i = 0; i < arguments.size(); i++) {
 				arguments.set(i, ConverterFactory.getInstance().getConverter().convert(arguments.get(i), method.getParameterTypes()[i]));
