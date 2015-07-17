@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.ServiceLoader;
 
 import be.nabu.libs.evaluator.api.ContextAccessor;
+import be.nabu.libs.evaluator.impl.JavaContextAccessor;
 
 public class ContextAccessorFactory {
 	
@@ -76,7 +77,7 @@ public class ContextAccessorFactory {
 				}
 			}
 		}
-		return (ContextAccessor<T>) closest;
+		return (ContextAccessor<T>) (closest == null ? new JavaContextAccessor() : closest);
 	}
 	
 }

@@ -1,1 +1,3 @@
-be.nabu.libs.evaluator.impl.JavaContextAccessor
+be.nabu.libs.evaluator.impl.MapContextAccessor
+be.nabu.libs.evaluator.impl.CollectionContextAccessor
+be.nabu.libs.evaluator.impl.ArrayContextAccessor
