@@ -8,5 +8,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 public @interface MethodProviderClass {
-	public String namespace() default"";
+	public String namespace() default "";
+	public boolean caseSensitive() default true;
 }

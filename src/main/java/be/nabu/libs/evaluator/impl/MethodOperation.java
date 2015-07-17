@@ -74,12 +74,14 @@ public class MethodOperation<T> extends BaseMethodOperation<T> {
 	protected Method findMethod(String fullName, int amountOfParams) throws ClassNotFoundException {
 		List<Class<?>> classesToCheck = new ArrayList<Class<?>>();
 		String methodName = null;
+		Map<Class<?>, Boolean> caseSensitivity = new HashMap<Class<?>, Boolean>();
 		// if you access a specific class, use that
 		if (fullName.contains(".")) {
 			String namespace = fullName.replaceAll("^(.*)\\.[^.]+$", "$1");
 			// check if it's a namespace of an existing class
 			for (Class<?> possibleClass : defaultClasses) {
 				MethodProviderClass annotation = possibleClass.getAnnotation(MethodProviderClass.class);
+				caseSensitivity.put(possibleClass, annotation == null || annotation.caseSensitive());
 				if (annotation != null && annotation.namespace() != null && !annotation.namespace().isEmpty()) {
 					if (namespace.equals(annotation.namespace())) {
 						classesToCheck.add(possibleClass);
@@ -102,6 +104,7 @@ public class MethodOperation<T> extends BaseMethodOperation<T> {
 			methodName = fullName;
 		}
 		for (Class<?> clazz : classesToCheck) {
+			boolean caseSensitive = caseSensitivity.containsKey(clazz) ? caseSensitivity.get(clazz) : this.caseSensitive; 
 			for (Method method : clazz.getDeclaredMethods()) {
 				if (Modifier.isPublic(method.getModifiers()) && Modifier.isStatic(method.getModifiers()) && ((caseSensitive && method.getName().equals(methodName)) || (!caseSensitive && method.getName().equalsIgnoreCase(methodName)))) {
 					// if the last parameter is an array, we will dynamically create an array at runtime
