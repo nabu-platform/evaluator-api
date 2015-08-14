@@ -18,7 +18,18 @@ import be.nabu.libs.evaluator.base.BaseOperation;
 public class VariableOperation<T> extends BaseOperation<T> {
 	
 	private ContextAccessor<T> accessor = null;
-	private boolean allowParentLookup = true;
+	
+	/**
+	 * This allows missing variables to be resolved at any parent level
+	 * Be careful as this naming conflicts are likely to arise in semi-complex situations
+	 */
+	private boolean allowParentLookup = false;
+	
+	/**
+	 * This is more strict in that missing variables can be resolved against the root level if the current fails, NOT any intermediate parent
+	 * You should still be careful with naming conflicts
+	 */
+	private boolean allowRootLookup = false;
 	
 	private static ThreadLocal<Stack<?>> contextStack = new ThreadLocal<Stack<?>>();
 	
@@ -90,10 +101,19 @@ public class VariableOperation<T> extends BaseOperation<T> {
 				path = path.substring(1);
 			}
 			object = getAccessor().get(context, path);
-			while (offset == 0 && object == null && allowParentLookup && contextIndex > 0) {
-				contextIndex--;
-				context = contexts.get(contextIndex);
-				object = getAccessor().get(context, path);	
+			if (offset == 0 && object == null) {
+				if (allowParentLookup) {
+					while (object == null && contextIndex > 0) {
+						contextIndex--;
+						context = contexts.get(contextIndex);
+						object = getAccessor().get(context, path);	
+					}
+				}
+				else if (allowRootLookup && contextIndex > 0) {
+					contextIndex = 0;
+					context = contexts.get(contextIndex);
+					object = getAccessor().get(context, path);	
+				}
 			}
 		}
 		
@@ -252,4 +272,21 @@ public class VariableOperation<T> extends BaseOperation<T> {
 		}
 		return (Stack<T>) contextStack.get();
 	}
+
+	public boolean isAllowParentLookup() {
+		return allowParentLookup;
+	}
+
+	public void setAllowParentLookup(boolean allowParentLookup) {
+		this.allowParentLookup = allowParentLookup;
+	}
+
+	public boolean isAllowRootLookup() {
+		return allowRootLookup;
+	}
+
+	public void setAllowRootLookup(boolean allowRootLookup) {
+		this.allowRootLookup = allowRootLookup;
+	}
+	
 }
