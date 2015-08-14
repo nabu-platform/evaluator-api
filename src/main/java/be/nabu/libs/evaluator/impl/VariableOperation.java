@@ -80,8 +80,15 @@ public class VariableOperation<T> extends BaseOperation<T> {
 			}
 			context = contexts.get(contextIndex);
 			// if it's not the first part, remove any leading "/"!
-			if (offset > 0 && path.startsWith("/"))
+			if (offset > 0 && path.startsWith("/")) {
 				path = path.substring(1);
+			}
+			// go back to the root
+			else if (offset == 0 && path.startsWith("/")) {
+				contextIndex = 0;
+				context = contexts.get(contextIndex);
+				path = path.substring(1);
+			}
 			object = getAccessor().get(context, path);
 			while (offset == 0 && object == null && allowParentLookup && contextIndex > 0) {
 				contextIndex--;
