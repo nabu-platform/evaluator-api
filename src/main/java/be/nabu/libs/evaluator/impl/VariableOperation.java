@@ -201,7 +201,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 					// we just need to evaluate each subpart and add the result to the list
 					for (Object child : CollectionContextAccessor.listify(object)) {
 						if (child != null) {
-							Object childResult = evaluate(offset + 1);
+							Object childResult = evaluate((T) child, offset + 1);
 							if (childResult instanceof List)
 								results.addAll((List) childResult);
 							// otherwise, add it (even if null!)
