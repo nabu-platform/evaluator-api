@@ -1,10 +1,10 @@
 package be.nabu.libs.evaluator.impl;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Stack;
 
 import be.nabu.libs.evaluator.ContextAccessorFactory;
 import be.nabu.libs.evaluator.EvaluationException;
@@ -20,10 +20,11 @@ public class VariableOperation<T> extends BaseOperation<T> {
 	private ContextAccessor<T> accessor = null;
 	private boolean allowParentLookup = true;
 	
-	@SuppressWarnings("unchecked")
+	private static ThreadLocal<Stack<?>> contextStack = new ThreadLocal<Stack<?>>();
+	
 	@Override
 	public Object evaluate(T context) throws EvaluationException {
-		return evaluate(Arrays.asList(context), 0);
+		return evaluate(context, 0);
 	}
 	
 	@Override
@@ -36,11 +37,21 @@ public class VariableOperation<T> extends BaseOperation<T> {
 		return ((Operation<T>) getParts().get(offset).getContent()).getType() == OperationType.NATIVE || ((Operation<T>) getParts().get(offset).getContent()).getType() == OperationType.VARIABLE;
 	}
 	
+	private Object evaluate(T context, int offset) throws EvaluationException {
+		getContextStack().add(context);
+		try {
+			return evaluate(offset);
+		}
+		finally {
+			getContextStack().pop();
+		}
+	}
+	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	private Object evaluate(List<T> contexts, int offset) throws EvaluationException {
+	private Object evaluate(int offset) throws EvaluationException {
 		Object object = null;
-		
 		T context;
+		Stack<T> contexts = getContextStack();
 		int contextIndex = contexts.size() - 1;
 		// if you start off with an operation, you want to work from that result set
 		if (offset == 0 && getParts().get(offset).getType() == QueryPart.Type.OPERATION) {
@@ -49,17 +60,23 @@ public class VariableOperation<T> extends BaseOperation<T> {
 		}
 		else {
 			String path = getParts().get(offset).getContent().toString();
-			while (path.startsWith("../") || path.startsWith("./")) {
-				if (path.startsWith("./")) {
-					path = path.substring("./".length());
+			// if the path is "." it does nothing, so we either simply evaluate the next (without adding context) or return the last context
+			if (path.equals(".")) {
+				if (offset >= getParts().size() - 1) {
+					throw new EvaluationException("The path can't end with '.'");
 				}
-				else {
-					if (contextIndex == 0) {
-						throw new EvaluationException("Referencing an invalid context");
-					}
-					path = path.substring("../".length());
-					contextIndex--;
+				return evaluate(offset + 1);
+			}
+			while (path.equals("..")) {
+				if (offset >= getParts().size() - 1) {
+					throw new EvaluationException("The path can't end with '..'");
 				}
+				if (contextIndex == 0) {
+					throw new EvaluationException("Referencing an invalid context");
+				}
+				contextIndex--;
+				offset++;
+				path = getParts().get(offset).getContent().toString();
 			}
 			context = contexts.get(contextIndex);
 			// if it's not the first part, remove any leading "/"!
@@ -68,6 +85,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 			object = getAccessor().get(context, path);
 			while (offset == 0 && object == null && allowParentLookup && contextIndex > 0) {
 				contextIndex--;
+				context = contexts.get(contextIndex);
 				object = getAccessor().get(context, path);	
 			}
 		}
@@ -79,15 +97,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 		else if (object instanceof Map) {
 			// you have defined an index on the map, get a specific key
 			while (object instanceof Map && offset < getParts().size() - 1 && getParts().get(offset + 1).getType() == QueryPart.Type.OPERATION) {
-				Object key;
-				if (getParts().get(offset + 1).getContent() instanceof VariableOperation && allowParentLookup) {
-					List<T> newContextList = new ArrayList<T>(contexts.subList(0, contextIndex + 1));
-					newContextList.add(context);
-					key = ((VariableOperation<T>) getParts().get(offset + 1).getContent()).evaluate(newContextList, 0);
-				}
-				else {
-					key = ((Operation<T>) getParts().get(offset + 1).getContent()).evaluate(context);
-				}
+				Object key = ((Operation<T>) getParts().get(offset + 1).getContent()).evaluate(context);
 				object = ((Map) object).get(key);
 				offset++;
 			}
@@ -97,9 +107,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 			}
 			// otherwise, keep evaluating
 			else {
-				List<T> newContextList = new ArrayList<T>(contexts.subList(0, contextIndex + 1));
-				newContextList.add((T) object);
-				return evaluate(newContextList, offset + 1);
+				return evaluate((T) object, offset + 1);
 			}
 		}
 		// check if it's a list
@@ -166,9 +174,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 					// we just need to evaluate each subpart and add the result to the list
 					for (Object child : CollectionContextAccessor.listify(object)) {
 						if (child != null) {
-							List<T> newContextList = new ArrayList<T>(contexts.subList(0, contextIndex + 1));
-							newContextList.add((T) child);
-							Object childResult = evaluate(newContextList, offset + 1);
+							Object childResult = evaluate(offset + 1);
 							if (childResult instanceof List)
 								results.addAll((List) childResult);
 							// otherwise, add it (even if null!)
@@ -181,17 +187,13 @@ public class VariableOperation<T> extends BaseOperation<T> {
 				}
 				// otherwise, keep evaluating
 				else {
-					List<T> newContextList = new ArrayList<T>(contexts.subList(0, contextIndex + 1));
-					newContextList.add((T) object);
-					return evaluate(newContextList, offset + 1);
+					return evaluate((T) object, offset + 1);
 				}
 			}
 		}
 		// it's not a list, just recursively evaluate
 		else {
-			List<T> newContextList = new ArrayList<T>(contexts.subList(0, contextIndex + 1));
-			newContextList.add((T) object);
-			return evaluate(newContextList, offset + 1);
+			return evaluate((T) object, offset + 1);
 		}
 	}
 
@@ -236,4 +238,11 @@ public class VariableOperation<T> extends BaseOperation<T> {
 		this.accessor = accessor;
 	}
 	
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	private Stack<T> getContextStack() {
+		if (contextStack.get() == null) {
+			contextStack.set(new Stack());
+		}
+		return (Stack<T>) contextStack.get();
+	}
 }
