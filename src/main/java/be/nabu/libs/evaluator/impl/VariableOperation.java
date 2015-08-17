@@ -266,7 +266,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 	}
 	
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	private Stack<T> getContextStack() {
+	protected Stack<T> getContextStack() {
 		if (contextStack.get() == null) {
 			contextStack.set(new Stack());
 		}
