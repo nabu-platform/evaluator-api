@@ -67,7 +67,7 @@ public class QueryParser {
 	
 	protected QueryParser() {
 		// TODO: need to update the regex so "\\" is a valid string with a \ in it
-		parts.put(Type.STRING, "((?<!\\\\)\".*?(?<!\\\\)\"|(?<!\\\\)'.*?(?<!\\\\)')");
+		parts.put(Type.STRING, "((?:(?<!\\\\)\".*?(?<!\\\\)\")|(?:(?<!\\\\)'.*?(?<!\\\\)'))");
 		parts.put(Type.NUMBER_DECIMAL, "\\b[0-9]+\\.[0-9]+\\b");
 		parts.put(Type.NUMBER_INTEGER, "\\b[0-9]+\\b");
 		parts.put(Type.BOOLEAN_TRUE, "\\btrue\\b");
