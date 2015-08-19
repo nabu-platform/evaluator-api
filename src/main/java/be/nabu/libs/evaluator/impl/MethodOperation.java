@@ -161,7 +161,14 @@ public class MethodOperation<T> extends BaseMethodOperation<T> {
 				}
 			}
 			for (int i = 0; i < arguments.size(); i++) {
-				arguments.set(i, ConverterFactory.getInstance().getConverter().convert(arguments.get(i), method.getParameterTypes()[i]));
+				// if it's an empty array and an array is requested, create a new one of the requested type
+				// nothing has to be converted in this case
+				if (arguments.get(i) instanceof Object[] && ((Object[]) arguments.get(i)).length == 0 && method.getParameterTypes()[i].isArray()) {
+					arguments.set(i, Array.newInstance(method.getParameterTypes()[i].getComponentType(), 0));
+				}
+				else {
+					arguments.set(i, ConverterFactory.getInstance().getConverter().convert(arguments.get(i), method.getParameterTypes()[i]));
+				}
 			}
 			return method.invoke(null, arguments.toArray());
 		}
