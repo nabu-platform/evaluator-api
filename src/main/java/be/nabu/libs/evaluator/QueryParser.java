@@ -84,6 +84,7 @@ public class QueryParser {
 		parts.put(Type.INDEX_START, "\\[");
 		parts.put(Type.INDEX_STOP, "\\]");
 		// operators
+		parts.put(Type.NAMING, ":");
 		parts.put(Type.LOGICAL_AND, "\\band\\b|&&");
 		parts.put(Type.LOGICAL_OR, "\\bor\\b|\\|\\|");
 		parts.put(Type.BITWISE_OR, "\\|");

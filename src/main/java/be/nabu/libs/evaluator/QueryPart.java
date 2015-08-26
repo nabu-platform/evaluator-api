@@ -26,6 +26,7 @@ public class QueryPart {
 		NULL(true),
 		
 		// operators
+		NAMING(true, 0, true, true),
 		LOGICAL_OR(true, 0, true, true),
 		LOGICAL_AND(true, 1, true, true),
 		BITWISE_OR(true, 2, true, true),

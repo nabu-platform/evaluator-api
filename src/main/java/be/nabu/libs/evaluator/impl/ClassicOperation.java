@@ -105,6 +105,7 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							return ((Number) left).doubleValue() - ((Number) right).doubleValue();
 						else if (left instanceof Float)
 							return ((Number) left).floatValue() - ((Number) right).floatValue();
+						break;
 					case DIVIDE:
 						if (left instanceof Div) {
 							return ((Div) left).div(right);
@@ -120,6 +121,7 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							return ((Number) left).doubleValue() / ((Number) right).doubleValue();
 						else if (left instanceof Float)
 							return ((Number) left).floatValue() / ((Number) right).floatValue();
+						break;
 					case MOD:
 						if (left instanceof Mod) {
 							return ((Mod) left).mod(right);
@@ -135,6 +137,7 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							return ((Number) left).doubleValue() % ((Number) right).doubleValue();
 						else if (left instanceof Float)
 							return ((Number) left).floatValue() % ((Number) right).floatValue();
+						break;
 					case MULTIPLY:
 						if (left instanceof Multiply) {
 							return ((Multiply) left).multiply(right);
@@ -150,6 +153,7 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							return ((Number) left).doubleValue() * ((Number) right).doubleValue();
 						else if (left instanceof Float)
 							return ((Number) left).floatValue() * ((Number) right).floatValue();
+						break;
 					case POWER:
 						if (left instanceof Power) {
 							return ((Power) left).power(right);
@@ -285,7 +289,7 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 				}
 			}
 		}
-		throw new EvaluationException("Could not evaluate the operator");
+		throw new EvaluationException("Could not perform operation: " + toString());
 	}
 	
 	public Converter getConverter() {
@@ -347,18 +351,25 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 				else if (((Operation<?>) part.getContent()).getType() == OperationType.CLASSIC) {
 					int ownPrecedence = -1;
 					// get own precedence
+					boolean isNamed = false;
 					for (QueryPart child : getParts()) {
+						if (child.getType().isOperator() && child.getType() == Type.NAMING) {
+							isNamed = true;
+						}
 						if (child.getType().isOperator() && child.getType().getPrecedence() > ownPrecedence) {
 							ownPrecedence = child.getType().getPrecedence();
 						}
 					}
 					int otherPrecedence = -1;
 					for (QueryPart child : ((Operation<?>) part.getContent()).getParts()) {
+						if (child.getType().isOperator() && child.getType() == Type.NAMING) {
+							isNamed = true;
+						}
 						if (child.getType().isOperator() && child.getType().getPrecedence() > otherPrecedence) {
 							otherPrecedence = child.getType().getPrecedence();
 						}
 					}
-					if (ownPrecedence != otherPrecedence) {
+					if (!isNamed && ownPrecedence != otherPrecedence) {
 						builder.append("(" + part.getContent().toString() + ")");	
 					}
 					else {
