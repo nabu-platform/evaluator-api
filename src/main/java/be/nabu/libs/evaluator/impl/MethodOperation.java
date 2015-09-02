@@ -62,8 +62,12 @@ public class MethodOperation<T> extends BaseMethodOperation<T> {
 	
 	protected Method getMethod(int amountOfParams) throws ClassNotFoundException {
 		if (!methods.containsKey(amountOfParams)) {
-			String fullName = (String) getParts().get(0).getContent();
-			methods.put(amountOfParams, findMethod(fullName, amountOfParams));
+			synchronized(this) {
+				if (!methods.containsKey(amountOfParams)) {
+					String fullName = (String) getParts().get(0).getContent();
+					methods.put(amountOfParams, findMethod(fullName, amountOfParams));
+				}
+			}
 		}
 		return methods.get(amountOfParams);
 	}
