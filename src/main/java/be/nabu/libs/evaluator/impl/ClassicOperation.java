@@ -64,7 +64,13 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							return ((Plus) left).plus(right);
 						}
 						else if (left == null) {
-							throw new NullPointerException("The left operand of an ADD method was null");
+							// going for string concatenate
+							if (right instanceof String) {
+								left = "null";
+							}
+							else {
+								throw new NullPointerException("The left operand of an ADD method was null");
+							}
 						}
 						// for strings: if the left is a string and the right can not be converted, use default toString() logic
 						if (left instanceof String && right != null && !getConverter().canConvert(right.getClass(), String.class)) {
