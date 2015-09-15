@@ -111,6 +111,11 @@ public class PathAnalyzer<T> implements Analyzer<T> {
 												
 						// add the parameterOperation to the method operation
 						methodOperation.add(new QueryPart(Type.OPERATION, parameterOperation));
+
+						// if the token is now null, we are missing an ending scope
+						if (token == null) {
+							throw new ParseException("Missing end scope token for method call: " + methodOperation, 0);
+						}
 					}
 				}
 				// resolve the method
