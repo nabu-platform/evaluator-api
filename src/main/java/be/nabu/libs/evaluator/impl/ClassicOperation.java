@@ -38,262 +38,267 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 	@SuppressWarnings({ "unchecked", "rawtypes", "incomplete-switch" })
 	@Override
 	public Object evaluate(T context) throws EvaluationException {
-		for (int i = 0; i < getParts().size(); i++) {
-			QueryPart part = getParts().get(i);
-			// only interested in operators
-			if (part.getType().isOperator()) {
-				// get the operands
-				Object left = part.getType().hasLeftOperand() ? getOperand(context, i - 1) : null;
-			
-				// don't get (and potentially evaluate) the right part if it's not necessary
-				switch (part.getType()) {
-					case LOGICAL_AND:
-						if (!(Boolean) left)
-							return false;
-					break;
-					case LOGICAL_OR:
-						if ((Boolean) left)
-							return true;
-					break;
-				}
+		try {
+			for (int i = 0; i < getParts().size(); i++) {
+				QueryPart part = getParts().get(i);
+				// only interested in operators
+				if (part.getType().isOperator()) {
+					// get the operands
+					Object left = part.getType().hasLeftOperand() ? getOperand(context, i - 1) : null;
 				
-				Object right = part.getType().hasRightOperand() ? getOperand(context, i + 1) : null;				
-				switch (part.getType()) {
-					case ADD:
-						if (left instanceof Plus) {
-							return ((Plus) left).plus(right);
-						}
-						else if (left == null) {
-							// going for string concatenate
-							if (right instanceof String) {
-								left = "null";
+					// don't get (and potentially evaluate) the right part if it's not necessary
+					switch (part.getType()) {
+						case LOGICAL_AND:
+							if (!(Boolean) left)
+								return false;
+						break;
+						case LOGICAL_OR:
+							if ((Boolean) left)
+								return true;
+						break;
+					}
+					
+					Object right = part.getType().hasRightOperand() ? getOperand(context, i + 1) : null;				
+					switch (part.getType()) {
+						case ADD:
+							if (left instanceof Plus) {
+								return ((Plus) left).plus(right);
+							}
+							else if (left == null) {
+								// going for string concatenate
+								if (right instanceof String) {
+									left = "null";
+								}
+								else {
+									throw new NullPointerException("The left operand of an ADD method was null");
+								}
+							}
+							// for strings: if the left is a string and the right can not be converted, use default toString() logic
+							if (left instanceof String && right != null && !getConverter().canConvert(right.getClass(), String.class)) {
+								right = right.toString();
 							}
 							else {
-								throw new NullPointerException("The left operand of an ADD method was null");
+								right = getConverter().convert(right, left.getClass());
 							}
-						}
-						// for strings: if the left is a string and the right can not be converted, use default toString() logic
-						if (left instanceof String && right != null && !getConverter().canConvert(right.getClass(), String.class)) {
-							right = right.toString();
-						}
-						else {
+							// if the left one is a string, append
+							if (left instanceof String)
+								return ((String) left) + right;
+							else if (left instanceof Integer)
+								return ((Number) left).intValue() + ((Number) right).intValue();
+							else if (left instanceof Long)
+								return ((Number) left).longValue() + ((Number) right).longValue();
+							else if (left instanceof Short)
+								return ((Number) left).shortValue() + ((Number) right).shortValue();
+							else if (left instanceof Float)
+								return ((Number) left).floatValue() + ((Number) right).floatValue();
+							else if(left instanceof Double)
+								return ((Number) left).doubleValue() + ((Number) right).doubleValue();
+							break;
+						case SUBSTRACT:
+							if (left instanceof Minus) {
+								return ((Minus) left).minus(right);
+							}
+							if (!(left instanceof Number)) {
+								left = getConverter().convert(left, Double.class);
+							}
 							right = getConverter().convert(right, left.getClass());
-						}
-						// if the left one is a string, append
-						if (left instanceof String)
-							return ((String) left) + right;
-						else if (left instanceof Integer)
-							return ((Number) left).intValue() + ((Number) right).intValue();
-						else if (left instanceof Long)
-							return ((Number) left).longValue() + ((Number) right).longValue();
-						else if (left instanceof Short)
-							return ((Number) left).shortValue() + ((Number) right).shortValue();
-						else if (left instanceof Float)
-							return ((Number) left).floatValue() + ((Number) right).floatValue();
-						else if(left instanceof Double)
-							return ((Number) left).doubleValue() + ((Number) right).doubleValue();
-						break;
-					case SUBSTRACT:
-						if (left instanceof Minus) {
-							return ((Minus) left).minus(right);
-						}
-						if (!(left instanceof Number)) {
-							left = getConverter().convert(left, Double.class);
-						}
-						right = getConverter().convert(right, left.getClass());
-						if (left instanceof Integer)
-							return ((Number) left).intValue() - ((Number) right).intValue();
-						else if (left instanceof Long)
-							return ((Number) left).longValue() - ((Number) right).longValue();
-						else if (left instanceof Short)
-							return ((Number) left).shortValue() - ((Number) right).shortValue();
-						else if (left instanceof Double)
-							return ((Number) left).doubleValue() - ((Number) right).doubleValue();
-						else if (left instanceof Float)
-							return ((Number) left).floatValue() - ((Number) right).floatValue();
-						break;
-					case DIVIDE:
-						if (left instanceof Div) {
-							return ((Div) left).div(right);
-						}
-						right = getConverter().convert(right, left.getClass());
-						if (left instanceof Integer)
-							return ((Number) left).intValue() / ((Number) right).intValue();
-						else if (left instanceof Long)
-							return ((Number) left).longValue() / ((Number) right).longValue();
-						else if (left instanceof Short)
-							return ((Number) left).shortValue() / ((Number) right).shortValue();
-						else if (left instanceof Double)
-							return ((Number) left).doubleValue() / ((Number) right).doubleValue();
-						else if (left instanceof Float)
-							return ((Number) left).floatValue() / ((Number) right).floatValue();
-						break;
-					case MOD:
-						if (left instanceof Mod) {
-							return ((Mod) left).mod(right);
-						}
-						right = getConverter().convert(right, left.getClass());
-						if (left instanceof Integer)
-							return ((Number) left).intValue() % ((Number) right).intValue();
-						else if (left instanceof Long)
-							return ((Number) left).longValue() % ((Number) right).longValue();
-						else if (left instanceof Short)
-							return ((Number) left).shortValue() % ((Number) right).shortValue();
-						else if (left instanceof Double)
-							return ((Number) left).doubleValue() % ((Number) right).doubleValue();
-						else if (left instanceof Float)
-							return ((Number) left).floatValue() % ((Number) right).floatValue();
-						break;
-					case MULTIPLY:
-						if (left instanceof Multiply) {
-							return ((Multiply) left).multiply(right);
-						}
-						right = getConverter().convert(right, left.getClass());
-						if (left instanceof Integer)
-							return ((Number) left).intValue() * ((Number) right).intValue();
-						else if (left instanceof Long)
-							return ((Number) left).longValue() * ((Number) right).longValue();
-						else if (left instanceof Short)
-							return ((Number) left).shortValue() * ((Number) right).shortValue();
-						else if (left instanceof Double)
-							return ((Number) left).doubleValue() * ((Number) right).doubleValue();
-						else if (left instanceof Float)
-							return ((Number) left).floatValue() * ((Number) right).floatValue();
-						break;
-					case POWER:
-						if (left instanceof Power) {
-							return ((Power) left).power(right);
-						}
-						right = getConverter().convert(right, left.getClass());
-						return Math.pow(((Number) left).doubleValue(), ((Number) right).doubleValue());
-					case BITWISE_AND:
-						if (left instanceof And) {
-							return ((And) left).and(right);
-						}
-						return getConverter().convert(left, Boolean.class) & getConverter().convert(right, Boolean.class);
-					case BITWISE_OR:
-						if (left instanceof Or) {
-							return ((Or) left).or(right);
-						}
-						right = getConverter().convert(right, left.getClass());
-						return getConverter().convert(left, Boolean.class) | getConverter().convert(right, Boolean.class);
-					case LOGICAL_AND:
-						return getConverter().convert(left, Boolean.class) && getConverter().convert(right, Boolean.class);
-					case LOGICAL_OR:
-						return getConverter().convert(left, Boolean.class) || getConverter().convert(right, Boolean.class);
-					case EQUALS:
-						if (left == null) {
-							return right == null ? true : false;
-						}
-						else if (right == null) {
-							return false;
-						}
-						else {
+							if (left instanceof Integer)
+								return ((Number) left).intValue() - ((Number) right).intValue();
+							else if (left instanceof Long)
+								return ((Number) left).longValue() - ((Number) right).longValue();
+							else if (left instanceof Short)
+								return ((Number) left).shortValue() - ((Number) right).shortValue();
+							else if (left instanceof Double)
+								return ((Number) left).doubleValue() - ((Number) right).doubleValue();
+							else if (left instanceof Float)
+								return ((Number) left).floatValue() - ((Number) right).floatValue();
+							break;
+						case DIVIDE:
+							if (left instanceof Div) {
+								return ((Div) left).div(right);
+							}
 							right = getConverter().convert(right, left.getClass());
-							return left.equals(right);
-						}
-					case NOT_EQUALS:
-						if (left == null) {
-							return right == null ? false : true;
-						}
-						else if (right == null) {
-							return true;
-						}
-						else {
+							if (left instanceof Integer)
+								return ((Number) left).intValue() / ((Number) right).intValue();
+							else if (left instanceof Long)
+								return ((Number) left).longValue() / ((Number) right).longValue();
+							else if (left instanceof Short)
+								return ((Number) left).shortValue() / ((Number) right).shortValue();
+							else if (left instanceof Double)
+								return ((Number) left).doubleValue() / ((Number) right).doubleValue();
+							else if (left instanceof Float)
+								return ((Number) left).floatValue() / ((Number) right).floatValue();
+							break;
+						case MOD:
+							if (left instanceof Mod) {
+								return ((Mod) left).mod(right);
+							}
 							right = getConverter().convert(right, left.getClass());
-							return !left.equals(right);
-						}
-					case GREATER:
-						right = getConverter().convert(right, left.getClass());
-						return ((Comparable) left).compareTo((Comparable) right) == 1;
-					case GREATER_OR_EQUALS:
-						right = getConverter().convert(right, left.getClass());
-						return ((Comparable) left).compareTo((Comparable) right) >= 0;
-					case LESSER:
-						right = getConverter().convert(right, left.getClass());
-						return ((Comparable) left).compareTo((Comparable) right) == -1;
-					case LESSER_OR_EQUALS:
-						right = getConverter().convert(right, left.getClass());
-						return ((Comparable) left).compareTo((Comparable) right) <= 0;
-					case IN:
-						if (right instanceof String) {
+							if (left instanceof Integer)
+								return ((Number) left).intValue() % ((Number) right).intValue();
+							else if (left instanceof Long)
+								return ((Number) left).longValue() % ((Number) right).longValue();
+							else if (left instanceof Short)
+								return ((Number) left).shortValue() % ((Number) right).shortValue();
+							else if (left instanceof Double)
+								return ((Number) left).doubleValue() % ((Number) right).doubleValue();
+							else if (left instanceof Float)
+								return ((Number) left).floatValue() % ((Number) right).floatValue();
+							break;
+						case MULTIPLY:
+							if (left instanceof Multiply) {
+								return ((Multiply) left).multiply(right);
+							}
+							right = getConverter().convert(right, left.getClass());
+							if (left instanceof Integer)
+								return ((Number) left).intValue() * ((Number) right).intValue();
+							else if (left instanceof Long)
+								return ((Number) left).longValue() * ((Number) right).longValue();
+							else if (left instanceof Short)
+								return ((Number) left).shortValue() * ((Number) right).shortValue();
+							else if (left instanceof Double)
+								return ((Number) left).doubleValue() * ((Number) right).doubleValue();
+							else if (left instanceof Float)
+								return ((Number) left).floatValue() * ((Number) right).floatValue();
+							break;
+						case POWER:
+							if (left instanceof Power) {
+								return ((Power) left).power(right);
+							}
+							right = getConverter().convert(right, left.getClass());
+							return Math.pow(((Number) left).doubleValue(), ((Number) right).doubleValue());
+						case BITWISE_AND:
+							if (left instanceof And) {
+								return ((And) left).and(right);
+							}
+							return getConverter().convert(left, Boolean.class) & getConverter().convert(right, Boolean.class);
+						case BITWISE_OR:
+							if (left instanceof Or) {
+								return ((Or) left).or(right);
+							}
+							right = getConverter().convert(right, left.getClass());
+							return getConverter().convert(left, Boolean.class) | getConverter().convert(right, Boolean.class);
+						case LOGICAL_AND:
+							return getConverter().convert(left, Boolean.class) && getConverter().convert(right, Boolean.class);
+						case LOGICAL_OR:
+							return getConverter().convert(left, Boolean.class) || getConverter().convert(right, Boolean.class);
+						case EQUALS:
+							if (left == null) {
+								return right == null ? true : false;
+							}
+							else if (right == null) {
+								return false;
+							}
+							else {
+								right = getConverter().convert(right, left.getClass());
+								return left.equals(right);
+							}
+						case NOT_EQUALS:
+							if (left == null) {
+								return right == null ? false : true;
+							}
+							else if (right == null) {
+								return true;
+							}
+							else {
+								right = getConverter().convert(right, left.getClass());
+								return !left.equals(right);
+							}
+						case GREATER:
+							right = getConverter().convert(right, left.getClass());
+							return ((Comparable) left).compareTo((Comparable) right) == 1;
+						case GREATER_OR_EQUALS:
+							right = getConverter().convert(right, left.getClass());
+							return ((Comparable) left).compareTo((Comparable) right) >= 0;
+						case LESSER:
+							right = getConverter().convert(right, left.getClass());
+							return ((Comparable) left).compareTo((Comparable) right) == -1;
+						case LESSER_OR_EQUALS:
+							right = getConverter().convert(right, left.getClass());
+							return ((Comparable) left).compareTo((Comparable) right) <= 0;
+						case IN:
+							if (right instanceof String) {
+								left = getConverter().convert(left, String.class);
+								return ((String) right).toLowerCase().contains(((String) left).toLowerCase());
+							}
+							else {
+								List<?> list1 = right instanceof Collection ? new ArrayList((List<?>) right) : Arrays.asList((Object[]) right);
+								return list1.contains(left);
+							}
+						case NOT_IN:
+							if (right instanceof String) {
+								left = getConverter().convert(left, String.class);
+								return !((String) right).toLowerCase().contains(((String) left).toLowerCase());
+							}
+							else {
+								List<?> list2 = right instanceof Collection ? new ArrayList((List<?>) right) : Arrays.asList((Object[]) right);
+								return !list2.contains(left);
+							}
+						case NOT:
+							return !getConverter().convert(right, Boolean.class);
+						case MATCHES:
 							left = getConverter().convert(left, String.class);
-							return ((String) right).toLowerCase().contains(((String) left).toLowerCase());
-						}
-						else {
-							List<?> list1 = right instanceof Collection ? new ArrayList((List<?>) right) : Arrays.asList((Object[]) right);
-							return list1.contains(left);
-						}
-					case NOT_IN:
-						if (right instanceof String) {
+							right = getConverter().convert(right, String.class);
+							return ((String) left).matches((String) right);
+						case NOT_MATCHES:
 							left = getConverter().convert(left, String.class);
-							return !((String) right).toLowerCase().contains(((String) left).toLowerCase());
-						}
-						else {
-							List<?> list2 = right instanceof Collection ? new ArrayList((List<?>) right) : Arrays.asList((Object[]) right);
-							return !list2.contains(left);
-						}
-					case NOT:
-						return !getConverter().convert(right, Boolean.class);
-					case MATCHES:
-						left = getConverter().convert(left, String.class);
-						right = getConverter().convert(right, String.class);
-						return ((String) left).matches((String) right);
-					case NOT_MATCHES:
-						left = getConverter().convert(left, String.class);
-						right = getConverter().convert(right, String.class);
-						return !((String) left).matches((String) right);
-					case NOT_XOR:
-						left = getConverter().convert(left, Boolean.class);
-						right = getConverter().convert(right, Boolean.class);
-						return (Boolean) left.equals((Boolean) right);
-					case XOR:
-						if (left instanceof Xor) {
-							return ((Xor) left).xor(right);
-						}
-						left = getConverter().convert(left, Boolean.class);
-						right = getConverter().convert(right, Boolean.class);
-						return !(Boolean) left.equals((Boolean) right);
-					case INCREASE:
-						if (left instanceof Next) {
-							return ((Next) left).next();
-						}
-						if (left instanceof Integer) {
-							return ((Number) left).intValue() + 1;
-						}
-						else if (left instanceof Long) {
-							return ((Number) left).longValue() + 1;
-						}
-						else if (left instanceof Short) {
-							return ((Number) left).shortValue() + 1;
-						}
-						else if (left instanceof Double) {
-							return ((Number) left).doubleValue() + 1;
-						}
-						else if (left instanceof Float) {
-							return ((Number) left).floatValue() + 1;
-						}
-					case DECREASE:
-						if (left instanceof Previous) {
-							return ((Previous) left).previous();
-						}
-						if (left instanceof Integer) {
-							return ((Number) left).intValue() - 1;
-						}
-						else if (left instanceof Long) {
-							return ((Number) left).longValue() - 1;
-						}
-						else if (left instanceof Short) {
-							return ((Number) left).shortValue() - 1;
-						}
-						else if (left instanceof Double) {
-							return ((Number) left).doubleValue() - 1;
-						}
-						else if (left instanceof Float) {
-							return ((Number) left).floatValue() - 1;
-						}
+							right = getConverter().convert(right, String.class);
+							return !((String) left).matches((String) right);
+						case NOT_XOR:
+							left = getConverter().convert(left, Boolean.class);
+							right = getConverter().convert(right, Boolean.class);
+							return (Boolean) left.equals((Boolean) right);
+						case XOR:
+							if (left instanceof Xor) {
+								return ((Xor) left).xor(right);
+							}
+							left = getConverter().convert(left, Boolean.class);
+							right = getConverter().convert(right, Boolean.class);
+							return !(Boolean) left.equals((Boolean) right);
+						case INCREASE:
+							if (left instanceof Next) {
+								return ((Next) left).next();
+							}
+							if (left instanceof Integer) {
+								return ((Number) left).intValue() + 1;
+							}
+							else if (left instanceof Long) {
+								return ((Number) left).longValue() + 1;
+							}
+							else if (left instanceof Short) {
+								return ((Number) left).shortValue() + 1;
+							}
+							else if (left instanceof Double) {
+								return ((Number) left).doubleValue() + 1;
+							}
+							else if (left instanceof Float) {
+								return ((Number) left).floatValue() + 1;
+							}
+						case DECREASE:
+							if (left instanceof Previous) {
+								return ((Previous) left).previous();
+							}
+							if (left instanceof Integer) {
+								return ((Number) left).intValue() - 1;
+							}
+							else if (left instanceof Long) {
+								return ((Number) left).longValue() - 1;
+							}
+							else if (left instanceof Short) {
+								return ((Number) left).shortValue() - 1;
+							}
+							else if (left instanceof Double) {
+								return ((Number) left).doubleValue() - 1;
+							}
+							else if (left instanceof Float) {
+								return ((Number) left).floatValue() - 1;
+							}
+					}
 				}
 			}
+		}
+		catch (Exception e) {
+			throw new EvaluationException("Could not perform operation: " + toString(), e);
 		}
 		throw new EvaluationException("Could not perform operation: " + toString());
 	}
