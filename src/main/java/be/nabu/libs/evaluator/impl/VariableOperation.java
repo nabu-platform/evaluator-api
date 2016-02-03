@@ -31,7 +31,20 @@ public class VariableOperation<T> extends BaseOperation<T> {
 	 */
 	private boolean allowRootLookup = false;
 	
+	/**
+	 * This stack keeps track (across operations) what the contexts are allowing you to refer to parent and root contexts
+	 */
 	private static ThreadLocal<Stack<?>> contextStack = new ThreadLocal<Stack<?>>();
+	
+	/**
+	 * The "root" of a given context is not necessarily the actual root context, this allows you to define root stacks
+	 * For example we have a glue script acting as an HTML page
+	 * It calls a translation service that is provided by the nabu service stack, this adds the glue script as the root context because that is the very first execution in the thread
+	 * The nabu service tries to evaluate a variable operation, but because we are still in that glue call, the glue script is set as the root and the nabu service can not resolve absolute paths to what it perceives as its root context
+	 * In this case the nabu service will register a new root, indicating that for its execution we need the relative root that it provides
+	 * This relative root will be used to resolve absolute paths
+	 */
+	private static ThreadLocal<Stack<Integer>> rootStack = new ThreadLocal<Stack<Integer>>();
 	
 	@Override
 	public Object evaluate(T context) throws EvaluationException {
@@ -49,7 +62,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 	}
 	
 	private Object evaluate(T context, int offset) throws EvaluationException {
-		getContextStack().add(context);
+		getContextStack().push(context);
 		try {
 			return evaluate(offset);
 		}
@@ -96,7 +109,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 			}
 			// go back to the root
 			else if (offset == 0 && path.startsWith("/")) {
-				contextIndex = 0;
+				contextIndex = getCurrentRoot();
 				context = contexts.get(contextIndex);
 				path = path.substring(1);
 			}
@@ -272,6 +285,13 @@ public class VariableOperation<T> extends BaseOperation<T> {
 		}
 		return (Stack<T>) contextStack.get();
 	}
+	
+	protected Integer getCurrentRoot() {
+		if (rootStack.get() == null) {
+			rootStack.set(new Stack<Integer>());
+		}
+		return rootStack.get().isEmpty() ? 0 : rootStack.get().peek();
+	}
 
 	public boolean isAllowParentLookup() {
 		return allowParentLookup;
@@ -289,4 +309,24 @@ public class VariableOperation<T> extends BaseOperation<T> {
 		this.allowRootLookup = allowRootLookup;
 	}
 	
+	/**
+	 * The register root is called before the actual context to be root is added because it is before the evaluate() is originally called
+	 * As such we add the "next" index to be added to the context stack as root
+	 */
+	public static void registerRoot() {
+		// the "root" of the context stack is always considered a root, so don't do anything if there is no context or it is empty
+		if (contextStack.get() != null && !contextStack.get().isEmpty()) {
+			if (rootStack.get() == null) {
+				rootStack.set(new Stack<Integer>());
+			}
+			rootStack.get().add(contextStack.get().size());
+		}
+	}
+	
+	public static void unregisterRoot() {
+		// the "root" of the context stack is always considered a root, so don't do anything if there is no context or it only consists of one object
+		if (rootStack.get() != null && !rootStack.get().isEmpty()) {
+			rootStack.get().pop();
+		}
+	}
 }
