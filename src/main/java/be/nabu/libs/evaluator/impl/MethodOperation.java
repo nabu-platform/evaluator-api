@@ -7,6 +7,7 @@ import java.lang.reflect.Modifier;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +48,10 @@ public class MethodOperation<T> extends BaseMethodOperation<T> {
 	private boolean caseSensitive = true;
 	
 	private boolean allowNullCompletion = true;
+	
+	public MethodOperation(Collection<Class<?>> classes) {
+		this.defaultClasses.addAll(classes);
+	}
 	
 	public MethodOperation(Class<?>...defaultClasses) {
 		this.defaultClasses.addAll(Arrays.asList(defaultClasses));
