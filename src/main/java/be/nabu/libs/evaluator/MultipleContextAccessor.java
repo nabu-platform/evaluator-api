@@ -1,6 +1,8 @@
 package be.nabu.libs.evaluator;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 import be.nabu.libs.evaluator.api.ContextAccessor;
 import be.nabu.libs.evaluator.impl.JavaContextAccessor;
@@ -8,6 +10,7 @@ import be.nabu.libs.evaluator.impl.JavaContextAccessor;
 public class MultipleContextAccessor implements ContextAccessor<Object> {
 
 	private Collection<ContextAccessor<?>> accessors;
+	private Map<Class<?>, ContextAccessor<?>> classAccessors = new HashMap<Class<?>, ContextAccessor<?>>();
 
 	public MultipleContextAccessor(Collection<ContextAccessor<?>> accessors) {
 		this.accessors = accessors;
@@ -48,15 +51,20 @@ public class MultipleContextAccessor implements ContextAccessor<Object> {
 		if (object == null) {
 			return null;
 		}
-		ContextAccessor<?> mostSpecific = null;
-		for (ContextAccessor<?> accessor : accessors) {
-			if (accessor.getContextType().isAssignableFrom(object.getClass())) {
-				if (mostSpecific == null || mostSpecific.getContextType().isAssignableFrom(accessor.getContextType())) {
-					mostSpecific = accessor;
+		else if (!classAccessors.containsKey(object.getClass())) {
+			ContextAccessor<?> mostSpecific = null;
+			for (ContextAccessor<?> accessor : accessors) {
+				if (accessor.getContextType().isAssignableFrom(object.getClass())) {
+					if (mostSpecific == null || mostSpecific.getContextType().isAssignableFrom(accessor.getContextType())) {
+						mostSpecific = accessor;
+					}
 				}
 			}
+			synchronized(classAccessors) {
+				classAccessors.put(object.getClass(), mostSpecific == null ? new JavaContextAccessor() : mostSpecific);
+			}
 		}
-		return mostSpecific == null ? new JavaContextAccessor() : mostSpecific;
+		return classAccessors.get(object.getClass());
 	}
 	
 }
