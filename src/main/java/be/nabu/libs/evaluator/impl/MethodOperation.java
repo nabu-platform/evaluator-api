@@ -142,6 +142,9 @@ public class MethodOperation<T> extends BaseMethodOperation<T> {
 			List arguments = new ArrayList();
 			for (int i = 1; i < getParts().size(); i++) {
 				Operation<T> argumentOperation = (Operation<T>) getParts().get(i).getContent();
+				if (argumentOperation == null) {
+					throw new EvaluationException("Can not find operation for method " + getParts().get(0) + " argument " + i + ": " + getParts().get(i));
+				}
 				arguments.add(argumentOperation.evaluate(context));
 			}
 			Method method = getMethod(arguments.size());
