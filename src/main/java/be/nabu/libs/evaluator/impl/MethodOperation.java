@@ -49,6 +49,8 @@ public class MethodOperation<T> extends BaseMethodOperation<T> {
 	
 	private boolean allowNullCompletion = true;
 	
+	private MethodFilter methodFilter;
+	
 	public MethodOperation(Collection<Class<?>> classes) {
 		this.defaultClasses.addAll(classes);
 	}
@@ -117,6 +119,9 @@ public class MethodOperation<T> extends BaseMethodOperation<T> {
 			boolean caseSensitive = annotation != null ? annotation.caseSensitive() : this.caseSensitive;
 			for (Method method : clazz.getDeclaredMethods()) {
 				if (Modifier.isPublic(method.getModifiers()) && Modifier.isStatic(method.getModifiers()) && ((caseSensitive && method.getName().equals(methodName)) || (!caseSensitive && method.getName().equalsIgnoreCase(methodName)))) {
+					if (methodFilter != null && !methodFilter.isAllowed(method)) {
+						continue;
+					}
 					// if the last parameter is an array, we will dynamically create an array at runtime
 					// this is to support varargs
 					if (amountOfParams < 0 || method.getParameterTypes().length == amountOfParams 
@@ -195,10 +200,21 @@ public class MethodOperation<T> extends BaseMethodOperation<T> {
 		}
 	}
 
+	public MethodFilter getMethodFilter() {
+		return methodFilter;
+	}
+	public void setMethodFilter(MethodFilter methodFilter) {
+		this.methodFilter = methodFilter;
+	}
+
 	public boolean isCaseSensitive() {
 		return caseSensitive;
 	}
 	public void setCaseSensitive(boolean caseSensitive) {
 		this.caseSensitive = caseSensitive;
+	}
+	
+	public static interface MethodFilter {
+		public boolean isAllowed(Method method);
 	}
 }
