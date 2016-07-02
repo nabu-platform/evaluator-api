@@ -2,9 +2,11 @@ package be.nabu.libs.evaluator.impl;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
+import java.util.concurrent.Callable;
 
 import be.nabu.libs.evaluator.ContextAccessorFactory;
 import be.nabu.libs.evaluator.EvaluationException;
@@ -58,7 +60,27 @@ public class VariableOperation<T> extends BaseOperation<T> {
 	
 	@SuppressWarnings("unchecked")
 	protected boolean isNumericAccess(int offset) {
-		return ((Operation<T>) getParts().get(offset).getContent()).getType() == OperationType.NATIVE || ((Operation<T>) getParts().get(offset).getContent()).getType() == OperationType.VARIABLE;
+		return isNumericAccess((Operation<T>) getParts().get(offset).getContent());
+//		return ((Operation<T>) getParts().get(offset).getContent()).getType() == OperationType.NATIVE || ((Operation<T>) getParts().get(offset).getContent()).getType() == OperationType.VARIABLE;
+	}
+	
+	protected boolean isNumericAccess(Operation<T> operation) {
+		if (operation.getType() == OperationType.NATIVE || operation.getType() == OperationType.VARIABLE) {
+			return true;
+		}
+		else if (operation.getType() == OperationType.CLASSIC) {
+			for (QueryPart part : operation.getParts()) {
+				if (part.getType().isOperator()) {
+					return part.getType() == QueryPart.Type.ADD
+							|| part.getType() == QueryPart.Type.SUBSTRACT
+							|| part.getType() == QueryPart.Type.MULTIPLY
+							|| part.getType() == QueryPart.Type.DIVIDE
+							|| part.getType() == QueryPart.Type.POWER
+							|| part.getType() == QueryPart.Type.MOD;
+				}
+			}
+		}
+		return true;
 	}
 	
 	private Object evaluate(T context, int offset) throws EvaluationException {
@@ -113,7 +135,8 @@ public class VariableOperation<T> extends BaseOperation<T> {
 				context = contexts.get(contextIndex);
 				path = path.substring(1);
 			}
-			object = getAccessor().get(context, path);
+			// you can reference the item itself by using "$this"
+			object = "$this".equals(path) ? context : getAccessor().get(context, path);
 			if (offset == 0 && object == null) {
 				if (allowParentLookup) {
 					while (object == null && contextIndex > 0) {
@@ -151,21 +174,46 @@ public class VariableOperation<T> extends BaseOperation<T> {
 			}
 		}
 		// check if it's a list
-		else if (object instanceof Collection || object instanceof Object[]) {
+		else if (object instanceof Collection || object instanceof Object[] || object instanceof Iterable) {
 			// if the next element is an operation, it is indexed
 			// if it returns a boolean, it has to be executed against each element in the list to filter
 			// otherwise if it's a number, you need access to a single element
 			boolean isConcatenatedResult = false;
-			while ((object instanceof Collection || object instanceof Object[]) && offset < getParts().size() - 1 && getParts().get(offset + 1).getType() == QueryPart.Type.OPERATION) {
-				object = CollectionContextAccessor.listify(object);
+			while ((object instanceof Collection || object instanceof Object[] || object instanceof Iterable) && offset < getParts().size() - 1 && getParts().get(offset + 1).getType() == QueryPart.Type.OPERATION) {
 				// we assume that indexed operations will be fixed indexes so it will be a native operation
 				// this will not always be true but in a limited context (for which this is designed) this is the most likely scenario
 				// note that if it is _only_ a variable, we assume the variable is also a number, would be odd to have a boolean variable
 				if (isNumericAccess(offset + 1)) {
 					Number index = (Number) ((Operation<T>) getParts().get(offset + 1).getContent()).evaluate(context);
-					object = index.intValue() < ((List) object).size() ? ((List) object).get(index.intValue()) : null;
+					if (object instanceof Iterable) {
+						Iterator iterator = ((Iterable) object).iterator();
+						for (long i = 0; i < index.longValue(); i++) {
+							if (iterator.hasNext()) {
+								iterator.next();
+							}
+							else {
+								break;
+							}
+						}
+						object = iterator.hasNext() ? iterator.next() : null;
+						// resolve the object if it needs to
+						if (object instanceof Callable) {
+							try {
+								object = ((Callable) object).call();
+							}
+							catch (Exception e) {
+								throw new RuntimeException(e);
+							}
+						}
+					}
+					else {
+						object = CollectionContextAccessor.listify(object);
+						object = index.intValue() < ((List) object).size() ? ((List) object).get(index.intValue()) : null;
+					}
 				}
+				// once we have a boolean selection instead of indexed access, we need to resolve the iterable
 				else {
+					object = CollectionContextAccessor.listify(object);
 					isConcatenatedResult = true;
 					List result = new ArrayList();
 					for (Object child : (List) object) {
@@ -195,7 +243,10 @@ public class VariableOperation<T> extends BaseOperation<T> {
 				// the first one is indexed access to the array, the second one builds a result set in memory, then selects all the $1 from that resultset
 				// the second basically returns a list of all possible "$1" values whereas the first selects the "$1" value for a specific array
 				// this is why we have the boolean isConcatenatedResult that indicates which situation we are in
-				while (((object instanceof Collection || object instanceof Object[]) && !isConcatenatedResult && childPath.matches("\\$[0-9]+")) || object instanceof Map) {
+				while (((object instanceof Collection || object instanceof Object[] || object instanceof Iterable) && !isConcatenatedResult && childPath.matches("\\$[0-9]+")) || object instanceof Map) {
+					if (object instanceof Iterable) {
+						object = CollectionContextAccessor.listify(object);
+					}
 					object = getAccessor().get((T) object, childPath);
 					if (offset == getParts().size() - 2) {
 						return object;
@@ -209,7 +260,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 						}
 					}
 				}
-				if (object instanceof Collection || object instanceof Object[]) {
+				if (object instanceof Collection || object instanceof Object[] || object instanceof Iterable) {
 					List results = new ArrayList();
 					// we just need to evaluate each subpart and add the result to the list
 					for (Object child : CollectionContextAccessor.listify(object)) {
