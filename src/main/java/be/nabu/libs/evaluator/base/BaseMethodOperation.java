@@ -15,7 +15,7 @@ abstract public class BaseMethodOperation<T> extends BaseOperation<T> {
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		// first the method name
-		builder.append((String) getParts().get(0).getContent());
+		builder.append(getParts().get(0).getContent().toString());
 		// then the rest
 		builder.append("(");
 		for (int i = 1; i < getParts().size(); i++) {

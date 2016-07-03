@@ -71,9 +71,11 @@ public class PathAnalyzer<T> implements Analyzer<T> {
 				// remove the scope start
 				token = token.remove();
 				
-				// remove the child operation
-				token = token.remove();
-								
+				if (childOperation != null) {
+					// remove the child operation
+					token = token.remove();
+				}
+
 				// remove the scope_stop
 				token = token.remove();
 				
@@ -182,14 +184,56 @@ public class PathAnalyzer<T> implements Analyzer<T> {
 				
 				variableOperation.finish();
 				
-				// add the variable operation to the tokens
-				if (token == null)
-					start.getLast().insertAfterThis(new QueryPart(Type.OPERATION, variableOperation));
-				else
-					insertedBefore = token.insertBeforeThis(new QueryPart(Type.OPERATION, variableOperation));
-				
-				// set the last
-				last = variableOperation;
+				// the variable is followed by a method statement, so the variable itself must return a method
+				if (token != null && token.getToken().getType() == Type.SCOPE_START) {
+					// the operation that will hold the method
+					Operation<T> methodOperation = operationProvider.newOperation(OperationType.METHOD);
+					
+					// add the method itself as first part
+					methodOperation.add(new QueryPart(Type.VARIABLE, variableOperation));
+
+					// if the next token is a scope-stop, just remove the scope_start
+					if (token.getNext().getToken().getType() == Type.SCOPE_STOP) {
+						token = token.remove();
+					}
+					else {
+						while (token.getToken().getType() != Type.SCOPE_STOP) {
+							// analyze the parameter
+							Operation<T> parameterOperation = analyze(token.getNext());
+
+							// if the first loop, this removes the (, afterwards it removes the "," you were on
+							// it will now point to the next "," or a ")"
+							token = token.remove();
+							
+							// remove the child operation
+							token = token.remove();
+										
+							// add the parameterOperation to the method operation
+							methodOperation.add(new QueryPart(Type.OPERATION, parameterOperation));
+
+							// if the token is now null, we are missing an ending scope
+							if (token == null) {
+								throw new ParseException("Missing end scope token for method call: " + methodOperation, 0);
+							}
+						}
+					}
+					methodOperation.finish();
+					// add the variable operation to the tokens
+					if (token == null)
+						start.getLast().insertAfterThis(new QueryPart(Type.OPERATION, methodOperation));
+					else
+						insertedBefore = token.insertBeforeThis(new QueryPart(Type.OPERATION, methodOperation));
+					last = methodOperation;
+				}
+				else {
+					// add the variable operation to the tokens
+					if (token == null)
+						start.getLast().insertAfterThis(new QueryPart(Type.OPERATION, variableOperation));
+					else
+						insertedBefore = token.insertBeforeThis(new QueryPart(Type.OPERATION, variableOperation));
+					// set the last
+					last = variableOperation;
+				}
 			}
 			else
 				token = token.getNext();
