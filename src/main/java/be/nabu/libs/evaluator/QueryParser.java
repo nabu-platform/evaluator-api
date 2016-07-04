@@ -1,5 +1,7 @@
 package be.nabu.libs.evaluator;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -68,8 +70,8 @@ public class QueryParser {
 	protected QueryParser() {
 		// TODO: need to update the regex so "\\" is a valid string with a \ in it
 		parts.put(Type.STRING, "((?:(?<!\\\\)\".*?(?<!\\\\)\")|(?:(?<!\\\\)'.*?(?<!\\\\)'))");
-		parts.put(Type.NUMBER_DECIMAL, "\\b[0-9]+\\.[0-9]+\\b");
-		parts.put(Type.NUMBER_INTEGER, "\\b[0-9]+\\b");
+		parts.put(Type.NUMBER_DECIMAL, "\\b[0-9]+\\.[0-9]+(b|)\\b");
+		parts.put(Type.NUMBER_INTEGER, "\\b[0-9]+(b|)\\b");
 		parts.put(Type.BOOLEAN_TRUE, "\\btrue\\b");
 		parts.put(Type.BOOLEAN_FALSE, "\\bfalse\\b");
 		parts.put(Type.NULL, "\\bnull\\b");
@@ -270,33 +272,43 @@ public class QueryParser {
 					if (type == Type.NUMBER_INTEGER || type == Type.NUMBER_DECIMAL) {
 						// check if it's a negative number
 						if (result.size() >= 1 && result.get(result.size() - 1).getType() == Type.SUBSTRACT) {
-							// if there is nothing before the substract, it is definately linked to the number
+							// if there is nothing before the subtract, it is definitely linked to the number
 							boolean isSign = result.size() <= 1;
 							if (!isSign) {
-								// otherwise we check the one before the substract
+								// otherwise we check the one before the subtract
 								Type previousType = result.get(result.size() - 2).getType();
-								// if it's another operator, the substract is actually a negative sign
+								// if it's another operator, the subtract is actually a negative sign
 								isSign |= previousType.isOperator()
-									// or if the type is something that can _not_ be substracted, it is also a sign
+									// or if the type is something that can _not_ be subtracted, it is also a sign
 									|| Arrays.asList(new Type [] { Type.SCOPE_START, Type.SEPARATOR, Type.INDEX_START }).contains(previousType);
 							}
 							if (isSign) {
 								token = "-" + token;
-								// remove the substract from the tokens
+								// remove the subtract from the tokens
 								result.remove(result.size() - 1);
 							}
 						}
 						if (type == Type.NUMBER_INTEGER) {
-							Long longValue = new Long(token);
-							if (longValue > Integer.MAX_VALUE || longValue < Integer.MIN_VALUE) {
-								result.add(new QueryPart(tokens.get(i), type, longValue));
+							if (token.endsWith("b")) {
+								result.add(new QueryPart(tokens.get(i), type, new BigInteger(token.substring(0, token.length() - 1))));
 							}
 							else {
-								result.add(new QueryPart(tokens.get(i), type, new Integer(longValue.intValue())));
+								Long longValue = new Long(token);
+								if (longValue > Integer.MAX_VALUE || longValue < Integer.MIN_VALUE) {
+									result.add(new QueryPart(tokens.get(i), type, longValue));
+								}
+								else {
+									result.add(new QueryPart(tokens.get(i), type, new Integer(longValue.intValue())));
+								}
 							}
 						}
 						else {
-							result.add(new QueryPart(tokens.get(i), type, new Double(token)));
+							if (token.endsWith("b")) {
+								result.add(new QueryPart(tokens.get(i), type, new BigDecimal(token.substring(0, token.length() - 1))));	
+							}
+							else {
+								result.add(new QueryPart(tokens.get(i), type, new Double(token)));
+							}
 						}
 					}
 					else if (type == Type.BOOLEAN_FALSE)

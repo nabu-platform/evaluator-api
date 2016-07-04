@@ -1,5 +1,7 @@
 package be.nabu.libs.evaluator.impl;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -126,6 +128,12 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 								return ((Number) left).floatValue() + ((Number) right).floatValue();
 							else if(left instanceof Double)
 								return ((Number) left).doubleValue() + ((Number) right).doubleValue();
+							else if (left instanceof BigInteger) {
+								return ((BigInteger) left).add((BigInteger) right);
+							}
+							else if (left instanceof BigDecimal) {
+								return ((BigDecimal) left).add((BigDecimal) right);
+							}
 							break;
 						case SUBSTRACT:
 							if (executor != null && executor.support(Operator.MINUS)) {
@@ -148,6 +156,12 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 								return ((Number) left).doubleValue() - ((Number) right).doubleValue();
 							else if (left instanceof Float)
 								return ((Number) left).floatValue() - ((Number) right).floatValue();
+							else if (left instanceof BigInteger) {
+								return ((BigInteger) left).subtract((BigInteger) right);
+							}
+							else if (left instanceof BigDecimal) {
+								return ((BigDecimal) left).subtract((BigDecimal) right);
+							}
 							break;
 						case DIVIDE:
 							if (executor != null && executor.support(Operator.DIV)) {
@@ -167,6 +181,12 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 								return ((Number) left).doubleValue() / ((Number) right).doubleValue();
 							else if (left instanceof Float)
 								return ((Number) left).floatValue() / ((Number) right).floatValue();
+							else if (left instanceof BigInteger) {
+								return ((BigInteger) left).divide((BigInteger) right);
+							}
+							else if (left instanceof BigDecimal) {
+								return ((BigDecimal) left).divide((BigDecimal) right);
+							}
 							break;
 						case MOD:
 							if (executor != null && executor.support(Operator.MOD)) {
@@ -186,6 +206,12 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 								return ((Number) left).doubleValue() % ((Number) right).doubleValue();
 							else if (left instanceof Float)
 								return ((Number) left).floatValue() % ((Number) right).floatValue();
+							else if (left instanceof BigInteger) {
+								return ((BigInteger) left).remainder((BigInteger) right);
+							}
+							else if (left instanceof BigDecimal) {
+								return ((BigDecimal) left).remainder((BigDecimal) right);
+							}
 							break;
 						case MULTIPLY:
 							if (executor != null && executor.support(Operator.MULTIPLY)) {
@@ -205,6 +231,12 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 								return ((Number) left).doubleValue() * ((Number) right).doubleValue();
 							else if (left instanceof Float)
 								return ((Number) left).floatValue() * ((Number) right).floatValue();
+							else if (left instanceof BigInteger) {
+								return ((BigInteger) left).multiply((BigInteger) right);
+							}
+							else if (left instanceof BigDecimal) {
+								return ((BigDecimal) left).multiply((BigDecimal) right);
+							}
 							break;
 						case POWER:
 							if (executor != null && executor.support(Operator.POWER)) {
@@ -213,8 +245,18 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							else if (left instanceof Power) {
 								return ((Power) left).power(right);
 							}
-							right = getConverter().convert(right, left.getClass());
-							return Math.pow(((Number) left).doubleValue(), ((Number) right).doubleValue());
+							if (left instanceof BigInteger) {
+								right = getConverter().convert(right, Integer.class);
+								return ((BigInteger) left).pow((Integer) right);
+							}
+							else if (left instanceof BigDecimal) {
+								right = getConverter().convert(right, Integer.class);
+								return ((BigDecimal) left).pow((Integer) right);
+							}
+							else {
+								right = getConverter().convert(right, left.getClass());
+								return Math.pow(((Number) left).doubleValue(), ((Number) right).doubleValue());
+							}
 						case BITWISE_AND:
 							if (executor != null && executor.support(Operator.AND)) {
 								return executor.calculate(left, Operator.AND, right);
@@ -358,6 +400,12 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							else if (left instanceof Float) {
 								return ((Number) left).floatValue() + 1;
 							}
+							else if (left instanceof BigInteger) {
+								return ((BigInteger) left).add(BigInteger.ONE);
+							}
+							else if (left instanceof BigDecimal) {
+								return ((BigDecimal) left).add(BigDecimal.ONE);
+							}
 						case DECREASE:
 							if (executor != null && executor.support(Operator.PREVIOUS)) {
 								return executor.calculate(left, Operator.PREVIOUS, right);
@@ -379,6 +427,12 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							}
 							else if (left instanceof Float) {
 								return ((Number) left).floatValue() - 1;
+							}
+							else if (left instanceof BigInteger) {
+								return ((BigInteger) left).subtract(BigInteger.ONE);
+							}
+							else if (left instanceof BigDecimal) {
+								return ((BigDecimal) left).subtract(BigDecimal.ONE);
 							}
 					}
 				}
