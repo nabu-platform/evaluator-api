@@ -69,7 +69,7 @@ public class QueryParser {
 	
 	protected QueryParser() {
 		// TODO: need to update the regex so "\\" is a valid string with a \ in it
-		parts.put(Type.STRING, "((?:(?<!\\\\)\".*?(?<!\\\\)\")|(?:(?<!\\\\)'.*?(?<!\\\\)'))");
+		parts.put(Type.STRING, "((?:(?<!(?<!\\\\)\\\\)\".*?(?<!(?<!\\\\)\\\\)\")|(?:(?<!(?<!\\\\)\\\\)'.*?(?<!(?<!\\\\)\\\\)'))");
 		parts.put(Type.NUMBER_DECIMAL, "\\b[0-9]+\\.[0-9]+(b|)\\b");
 		parts.put(Type.NUMBER_INTEGER, "\\b[0-9]+(b|)\\b");
 		parts.put(Type.BOOLEAN_TRUE, "\\btrue\\b");
@@ -260,11 +260,12 @@ public class QueryParser {
 					identified = true;
 					// post process if necessary
 					if (post.containsKey(type)) {
+						String quoteUsed = token.substring(0, 1);
 						for (String replace : post.get(type)) {
 							token = token.replaceAll(replace, "$1");
 						}
 						if (type == Type.STRING) {
-							token = token.replaceAll("(?<!\\\\)\\\\\"", "\"").replaceAll("(?<!\\\\)\\\\'", "'").replaceAll("(?<!\\\\)\\\\t", "\t").replaceAll("(?<!\\\\)\\\\n", "\n").replaceAll("(?<!\\\\)\\\\r", "\r").replaceAll("\\\\t", "\\t").replaceAll("\\\\n", "\\n").replaceAll("\\\\r", "\\r");
+							token = token.replaceAll("(?<!\\\\)\\\\" + quoteUsed, quoteUsed).replaceAll("(?<!\\\\)\\\\t", "\t").replaceAll("(?<!\\\\)\\\\n", "\n").replaceAll("(?<!\\\\)\\\\r", "\r").replaceAll("\\\\t", "\\t").replaceAll("\\\\n", "\\n").replaceAll("\\\\r", "\\r");
 							token = token.replace("\\\\", "\\");
 						}
 					}
