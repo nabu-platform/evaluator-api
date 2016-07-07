@@ -29,7 +29,6 @@ public interface OperationExecutor {
 		}
 	}
 	
-	public boolean support(Operator operator);
-	public Object calculate(Object leftOperand, Operator operator, Object rightOperand);
-	public Class<?> getSupportedType();
+	public boolean support(Object leftOperand, QueryPart.Type operator, Object rightOperand);
+	public Object calculate(Object leftOperand, QueryPart.Type operator, Object rightOperand);
 }

@@ -5,9 +5,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.ServiceLoader;
 
 import be.nabu.libs.converter.ConverterFactory;
@@ -25,7 +23,6 @@ import be.nabu.libs.evaluator.api.operations.Mod;
 import be.nabu.libs.evaluator.api.operations.Multiply;
 import be.nabu.libs.evaluator.api.operations.Next;
 import be.nabu.libs.evaluator.api.operations.OperationExecutor;
-import be.nabu.libs.evaluator.api.operations.OperationExecutor.Operator;
 import be.nabu.libs.evaluator.api.operations.Or;
 import be.nabu.libs.evaluator.api.operations.Plus;
 import be.nabu.libs.evaluator.api.operations.Power;
@@ -37,33 +34,26 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 	
 	private Converter converter;
 	
-	private static Map<Class<?>, OperationExecutor> operationExecutors;
+	private static List<OperationExecutor> operationExecutors;
 	
 	@Override
 	public void finish() {
 		// do nothing
 	}
 
-	public static OperationExecutor getOperationExecutor(Class<?> clazz) {
+	public static List<OperationExecutor> getOperationExecutors() {
 		if (operationExecutors == null) {
 			synchronized(ClassicOperation.class) {
 				if (operationExecutors == null) {
-					Map<Class<?>, OperationExecutor> operationExecutors = new HashMap<Class<?>, OperationExecutor>();
+					List<OperationExecutor> operationExecutors = new ArrayList<OperationExecutor>();
 					for (OperationExecutor provider : ServiceLoader.load(OperationExecutor.class)) {
-						operationExecutors.put(provider.getSupportedType(), provider);
+						operationExecutors.add(provider);
 					}
 					ClassicOperation.operationExecutors = operationExecutors;
 				}
 			}
 		}
-		// could build out the cache for all classes but this could grow to great proportions
-		// the actual provided operation providers will be very small so the for loop is currently considered the better option
-		for (Class<?> supportedType : operationExecutors.keySet()) {
-			if (supportedType.isAssignableFrom(clazz)) {
-				return operationExecutors.get(supportedType);
-			}
-		}
-		return null;
+		return operationExecutors;
 	}
 	
 	@SuppressWarnings({ "unchecked", "rawtypes", "incomplete-switch" })
@@ -77,7 +67,6 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 					// get the operands
 					Object left = part.getType().hasLeftOperand() ? getOperand(context, i - 1) : null;
 				
-					OperationExecutor executor = left == null ? null : getOperationExecutor(left.getClass());
 					// don't get (and potentially evaluate) the right part if it's not necessary
 					switch (part.getType()) {
 						case LOGICAL_AND:
@@ -90,13 +79,16 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 						break;
 					}
 					
-					Object right = part.getType().hasRightOperand() ? getOperand(context, i + 1) : null;				
+					Object right = part.getType().hasRightOperand() ? getOperand(context, i + 1) : null;
+
+					for (OperationExecutor possibleExecutor : getOperationExecutors()) {
+						if (possibleExecutor.support(left, part.getType(), right)) {
+							return possibleExecutor.calculate(left, part.getType(), right);
+						}
+					}
 					switch (part.getType()) {
 						case ADD:
-							if (executor != null && executor.support(Operator.PLUS)) {
-								return executor.calculate(left, Operator.PLUS, right);
-							}
-							else if (left instanceof Plus) {
+							if (left instanceof Plus) {
 								return ((Plus) left).plus(right);
 							}
 							else if (left == null) {
@@ -136,10 +128,7 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							}
 							break;
 						case SUBSTRACT:
-							if (executor != null && executor.support(Operator.MINUS)) {
-								return executor.calculate(left, Operator.MINUS, right);
-							}
-							else if (left instanceof Minus) {
+							if (left instanceof Minus) {
 								return ((Minus) left).minus(right);
 							}
 							if (!(left instanceof Number)) {
@@ -164,10 +153,7 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							}
 							break;
 						case DIVIDE:
-							if (executor != null && executor.support(Operator.DIV)) {
-								return executor.calculate(left, Operator.DIV, right);
-							}
-							else if (left instanceof Div) {
+							if (left instanceof Div) {
 								return ((Div) left).div(right);
 							}
 							right = getConverter().convert(right, left.getClass());
@@ -189,10 +175,7 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							}
 							break;
 						case MOD:
-							if (executor != null && executor.support(Operator.MOD)) {
-								return executor.calculate(left, Operator.MOD, right);
-							}
-							else if (left instanceof Mod) {
+							if (left instanceof Mod) {
 								return ((Mod) left).mod(right);
 							}
 							right = getConverter().convert(right, left.getClass());
@@ -214,10 +197,7 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							}
 							break;
 						case MULTIPLY:
-							if (executor != null && executor.support(Operator.MULTIPLY)) {
-								return executor.calculate(left, Operator.MULTIPLY, right);
-							}
-							else if (left instanceof Multiply) {
+							if (left instanceof Multiply) {
 								return ((Multiply) left).multiply(right);
 							}
 							right = getConverter().convert(right, left.getClass());
@@ -239,10 +219,7 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							}
 							break;
 						case POWER:
-							if (executor != null && executor.support(Operator.POWER)) {
-								return executor.calculate(left, Operator.POWER, right);
-							}
-							else if (left instanceof Power) {
+							if (left instanceof Power) {
 								return ((Power) left).power(right);
 							}
 							if (left instanceof BigInteger) {
@@ -258,18 +235,12 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 								return Math.pow(((Number) left).doubleValue(), ((Number) right).doubleValue());
 							}
 						case BITWISE_AND:
-							if (executor != null && executor.support(Operator.AND)) {
-								return executor.calculate(left, Operator.AND, right);
-							}
-							else if (left instanceof And) {
+							if (left instanceof And) {
 								return ((And) left).and(right);
 							}
 							return getConverter().convert(left, Boolean.class) & getConverter().convert(right, Boolean.class);
 						case BITWISE_OR:
-							if (executor != null && executor.support(Operator.OR)) {
-								return executor.calculate(left, Operator.OR, right);
-							}
-							else if (left instanceof Or) {
+							if (left instanceof Or) {
 								return ((Or) left).or(right);
 							}
 							right = getConverter().convert(right, left.getClass());
@@ -357,11 +328,7 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							right = getConverter().convert(right, String.class);
 							return !((String) left).matches((String) right);
 						case NOT_XOR:
-							if (executor != null && executor.support(Operator.XOR)) {
-								Boolean result = (Boolean) executor.calculate(left, Operator.XOR, right);
-								return !result;
-							}
-							else if (left instanceof Xor) {
+							if (left instanceof Xor) {
 								Boolean result = (Boolean) ((Xor) left).xor(right);
 								return !result;
 							}
@@ -369,20 +336,14 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							right = getConverter().convert(right, Boolean.class);
 							return (Boolean) left.equals((Boolean) right);
 						case XOR:
-							if (executor != null && executor.support(Operator.XOR)) {
-								return executor.calculate(left, Operator.XOR, right);
-							}
-							else if (left instanceof Xor) {
+							if (left instanceof Xor) {
 								return ((Xor) left).xor(right);
 							}
 							left = getConverter().convert(left, Boolean.class);
 							right = getConverter().convert(right, Boolean.class);
 							return !(Boolean) left.equals((Boolean) right);
 						case INCREASE:
-							if (executor != null && executor.support(Operator.NEXT)) {
-								return executor.calculate(left, Operator.NEXT, right);
-							}
-							else if (left instanceof Next) {
+							if (left instanceof Next) {
 								return ((Next) left).next();
 							}
 							if (left instanceof Integer) {
@@ -407,10 +368,7 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 								return ((BigDecimal) left).add(BigDecimal.ONE);
 							}
 						case DECREASE:
-							if (executor != null && executor.support(Operator.PREVIOUS)) {
-								return executor.calculate(left, Operator.PREVIOUS, right);
-							}
-							else if (left instanceof Previous) {
+							if (left instanceof Previous) {
 								return ((Previous) left).previous();
 							}
 							if (left instanceof Integer) {
