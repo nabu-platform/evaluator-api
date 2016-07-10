@@ -2,6 +2,7 @@ package be.nabu.libs.evaluator.impl;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -31,6 +32,16 @@ import be.nabu.libs.evaluator.api.operations.Xor;
 import be.nabu.libs.evaluator.base.BaseOperation;
 
 public class ClassicOperation<T> extends BaseOperation<T> {
+	
+	private static ThreadLocal<MathContext> mathContext = new ThreadLocal<MathContext>();
+	
+	public static void setMathContext(MathContext context) {
+		mathContext.set(context);
+	}
+	
+	public static MathContext getMathContext() {
+		return mathContext.get() == null ? MathContext.DECIMAL128 : mathContext.get();
+	}
 	
 	private Converter converter;
 	
@@ -171,7 +182,9 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 								return ((BigInteger) left).divide((BigInteger) right);
 							}
 							else if (left instanceof BigDecimal) {
-								return ((BigDecimal) left).divide((BigDecimal) right);
+								// without a math context things like 4 / 24 can throw arithmetic exceptions as they are infinite numbers: 0.16666666666666
+								// you have to choose _some_ precision for the rounding
+								return ((BigDecimal) left).divide((BigDecimal) right, getMathContext());
 							}
 							break;
 						case MOD:
