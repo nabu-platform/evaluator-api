@@ -76,7 +76,7 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 				// only interested in operators
 				if (part.getType().isOperator()) {
 					// get the operands
-					Object left = part.getType().hasLeftOperand() ? getOperand(context, i - 1) : null;
+					Object left = part.getType().hasLeftOperand() ? getOperand(context, i - 1, part.getType() == Type.SUBSTRACT) : null;
 				
 					// don't get (and potentially evaluate) the right part if it's not necessary
 					switch (part.getType()) {
@@ -90,7 +90,7 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 						break;
 					}
 					
-					Object right = part.getType().hasRightOperand() ? getOperand(context, i + 1) : null;
+					Object right = part.getType().hasRightOperand() ? getOperand(context, i + 1, false) : null;
 
 					for (OperationExecutor possibleExecutor : getOperationExecutors()) {
 						if (possibleExecutor.support(left, part.getType(), right)) {
@@ -141,6 +141,13 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 						case SUBSTRACT:
 							if (left instanceof Minus) {
 								return ((Minus) left).minus(right);
+							}
+							// if there is no left operand, we simply do 0-right
+							if (left == null) {
+								left = Long.valueOf(0);
+								if (right instanceof Number) {
+									left = getConverter().convert(left, right.getClass());
+								}
 							}
 							if (!(left instanceof Number)) {
 								left = getConverter().convert(left, Double.class);
@@ -427,7 +434,7 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 	}
 
 	@SuppressWarnings("unchecked")
-	protected Object getOperand(T context, int position) throws EvaluationException {
+	protected Object getOperand(T context, int position, boolean optional) throws EvaluationException {
 		QueryPart part = getParts().get(position);
 		if (part.getType().isNative()) {
 			return part.getContent();
@@ -435,8 +442,11 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 		else if (part.getType() == QueryPart.Type.OPERATION) {
 			return ((Operation<T>) part.getContent()).evaluate(context);
 		}
-		else {
+		else if (!optional) {
 			throw new EvaluationException("Expecting either a native part or an operation");
+		}
+		else {
+			return null;
 		}
 	}
 

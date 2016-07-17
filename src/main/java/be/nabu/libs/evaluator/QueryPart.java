@@ -51,7 +51,8 @@ public class QueryPart {
 		POWER(true, 9, true, true),
 		INCREASE(true, 10, true, false),
 		DECREASE(true, 10, true, false),
-		NOT(true, 10, false, true)
+		NOT(true, 10, false, true),
+		COMPOSE(true, 11, true, true)
 		;		
 		
 		/**

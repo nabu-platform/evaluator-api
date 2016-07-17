@@ -112,6 +112,7 @@ public class QueryParser {
 		parts.put(Type.NOT_EQUALS, "!=");
 		parts.put(Type.EQUALS, "==|=");
 		parts.put(Type.NOT, "!");
+		parts.put(Type.COMPOSE, "°");
 		
 		post.put(Type.STRING, Arrays.asList("(?s)^(?:\"|')(.*)(?:\"|')"));
 		// the lookahead for a scope opener is currently hardcoded!!!
