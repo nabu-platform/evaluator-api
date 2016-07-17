@@ -252,7 +252,8 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							}
 							else {
 								right = getConverter().convert(right, left.getClass());
-								return Math.pow(((Number) left).doubleValue(), ((Number) right).doubleValue());
+								Object result = Math.pow(((Number) left).doubleValue(), ((Number) right).doubleValue());
+								return getConverter().convert(result, left.getClass());
 							}
 						case BITWISE_AND:
 							if (left instanceof And) {
