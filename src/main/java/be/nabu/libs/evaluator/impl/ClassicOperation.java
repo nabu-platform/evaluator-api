@@ -294,13 +294,13 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							}
 						case GREATER:
 							right = getConverter().convert(right, left.getClass());
-							return ((Comparable) left).compareTo((Comparable) right) == 1;
+							return ((Comparable) left).compareTo((Comparable) right) > 0;
 						case GREATER_OR_EQUALS:
 							right = getConverter().convert(right, left.getClass());
 							return ((Comparable) left).compareTo((Comparable) right) >= 0;
 						case LESSER:
 							right = getConverter().convert(right, left.getClass());
-							return ((Comparable) left).compareTo((Comparable) right) == -1;
+							return ((Comparable) left).compareTo((Comparable) right) < 0;
 						case LESSER_OR_EQUALS:
 							right = getConverter().convert(right, left.getClass());
 							return ((Comparable) left).compareTo((Comparable) right) <= 0;
