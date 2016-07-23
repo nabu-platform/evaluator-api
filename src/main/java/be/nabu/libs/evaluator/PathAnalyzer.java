@@ -218,6 +218,10 @@ public class PathAnalyzer<T> implements Analyzer<T> {
 						}
 					}
 					methodOperation.finish();
+					
+					// remove the scope close
+					token = token.remove();
+					
 					// add the variable operation to the tokens
 					if (token == null)
 						start.getLast().insertAfterThis(new QueryPart(Type.OPERATION, methodOperation));

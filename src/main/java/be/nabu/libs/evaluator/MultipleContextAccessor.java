@@ -66,5 +66,9 @@ public class MultipleContextAccessor implements ContextAccessor<Object> {
 		}
 		return classAccessors.get(object.getClass());
 	}
+
+	public Collection<ContextAccessor<?>> getAccessors() {
+		return accessors;
+	}
 	
 }
