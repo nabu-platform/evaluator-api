@@ -87,9 +87,14 @@ public class PathAnalyzer<T> implements Analyzer<T> {
 			else if (token.getToken().getType() == Type.METHOD) {
 				// the operation that will hold the method
 				Operation<T> methodOperation = operationProvider.newOperation(OperationType.METHOD);
-									
-				// add the method itself as first part
-				methodOperation.add(token.getToken());
+				
+				if (token.getToken().getContent() instanceof Operation) {
+					methodOperation.add(new QueryPart(Type.OPERATION, token.getToken().getContent()));
+				}
+				else {
+					// add the method itself as first part
+					methodOperation.add(token.getToken());
+				}
 				
 				// remove the method token, the token then points to the scope_start that follows the method
 				token = token.remove();
@@ -125,13 +130,19 @@ public class PathAnalyzer<T> implements Analyzer<T> {
 				
 				// remove the scope closer, it moves to whatever was after it
 				token = token.remove();
-				
-				// add operation to the tokens
-				if (token == null)
-					start.getLast().insertAfterThis(new QueryPart(Type.OPERATION, methodOperation));
-				else
-					insertedBefore = token.insertBeforeThis(new QueryPart(Type.OPERATION, methodOperation));
-									
+
+				// if we have a method operation, add the currently parsed method again to the token list
+				if (token != null && token.getToken().getType() == Type.SCOPE_START) {
+					token = token.insertBeforeThis(new QueryPart(Type.METHOD, methodOperation));
+				}
+				else {
+					// add operation to the tokens
+					if (token == null)
+						start.getLast().insertAfterThis(new QueryPart(Type.OPERATION, methodOperation));
+					else
+						insertedBefore = token.insertBeforeThis(new QueryPart(Type.OPERATION, methodOperation));
+				}
+				// the variable is followed by a method statement, so the variable itself must return a method
 				// set the last
 				last = methodOperation;
 			}
@@ -186,48 +197,51 @@ public class PathAnalyzer<T> implements Analyzer<T> {
 				
 				// the variable is followed by a method statement, so the variable itself must return a method
 				if (token != null && token.getToken().getType() == Type.SCOPE_START) {
-					// the operation that will hold the method
-					Operation<T> methodOperation = operationProvider.newOperation(OperationType.METHOD);
-					
-					// add the method itself as first part
-					methodOperation.add(new QueryPart(Type.VARIABLE, variableOperation));
-
-					// if the next token is a scope-stop, just remove the scope_start
-					if (token.getNext().getToken().getType() == Type.SCOPE_STOP) {
-						token = token.remove();
-					}
-					else {
-						while (token.getToken().getType() != Type.SCOPE_STOP) {
-							// analyze the parameter
-							Operation<T> parameterOperation = analyze(token.getNext());
-
-							// if the first loop, this removes the (, afterwards it removes the "," you were on
-							// it will now point to the next "," or a ")"
-							token = token.remove();
-							
-							// remove the child operation
-							token = token.remove();
-										
-							// add the parameterOperation to the method operation
-							methodOperation.add(new QueryPart(Type.OPERATION, parameterOperation));
-
-							// if the token is now null, we are missing an ending scope
-							if (token == null) {
-								throw new ParseException("Missing end scope token for method call: " + methodOperation, 0);
-							}
-						}
-					}
-					methodOperation.finish();
-					
-					// remove the scope close
-					token = token.remove();
-					
-					// add the variable operation to the tokens
-					if (token == null)
-						start.getLast().insertAfterThis(new QueryPart(Type.OPERATION, methodOperation));
-					else
-						insertedBefore = token.insertBeforeThis(new QueryPart(Type.OPERATION, methodOperation));
-					last = methodOperation;
+					token = token.insertBeforeThis(new QueryPart(Type.METHOD, variableOperation));
+					// original copy paste to support methods that are returned from a variable operation, e.g. test/doIt()
+					// this can be ignored if we use the recursiveness of the parser by adding this as a method operation again but instead of a name, it has a variable operation as content
+//					// the operation that will hold the method
+//					Operation<T> methodOperation = operationProvider.newOperation(OperationType.METHOD);
+//					
+//					// add the method itself as first part
+//					methodOperation.add(new QueryPart(Type.VARIABLE, variableOperation));
+//
+//					// if the next token is a scope-stop, just remove the scope_start
+//					if (token.getNext().getToken().getType() == Type.SCOPE_STOP) {
+//						token = token.remove();
+//					}
+//					else {
+//						while (token.getToken().getType() != Type.SCOPE_STOP) {
+//							// analyze the parameter
+//							Operation<T> parameterOperation = analyze(token.getNext());
+//
+//							// if the first loop, this removes the (, afterwards it removes the "," you were on
+//							// it will now point to the next "," or a ")"
+//							token = token.remove();
+//							
+//							// remove the child operation
+//							token = token.remove();
+//										
+//							// add the parameterOperation to the method operation
+//							methodOperation.add(new QueryPart(Type.OPERATION, parameterOperation));
+//
+//							// if the token is now null, we are missing an ending scope
+//							if (token == null) {
+//								throw new ParseException("Missing end scope token for method call: " + methodOperation, 0);
+//							}
+//						}
+//					}
+//					methodOperation.finish();
+//					
+//					// remove the scope close
+//					token = token.remove();
+//					
+//					// add the variable operation to the tokens
+//					if (token == null)
+//						start.getLast().insertAfterThis(new QueryPart(Type.OPERATION, methodOperation));
+//					else
+//						insertedBefore = token.insertBeforeThis(new QueryPart(Type.OPERATION, methodOperation));
+//					last = methodOperation;
 				}
 				else {
 					// add the variable operation to the tokens
