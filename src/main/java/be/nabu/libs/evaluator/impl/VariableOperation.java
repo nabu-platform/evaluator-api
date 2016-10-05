@@ -80,7 +80,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 				}
 			}
 		}
-		return true;
+		return false;
 	}
 	
 	private Object evaluate(T context, int offset) throws EvaluationException {
