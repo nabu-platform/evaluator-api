@@ -305,7 +305,11 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							right = getConverter().convert(right, left.getClass());
 							return ((Comparable) left).compareTo((Comparable) right) <= 0;
 						case IN:
-							if (right instanceof String) {
+							// if there is no right one, the left can never be "in" it
+							if (right == null) {
+								return false;
+							}
+							else if (right instanceof String) {
 								left = getConverter().convert(left, String.class);
 								return ((String) right).toLowerCase().contains(((String) left).toLowerCase());
 							}
@@ -322,7 +326,11 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 								return list1.contains(left);
 							}
 						case NOT_IN:
-							if (right instanceof String) {
+							// if there is no right one, the left is never "in" it
+							if (right == null) {
+								return true;
+							}
+							else if (right instanceof String) {
 								left = getConverter().convert(left, String.class);
 								return !((String) right).toLowerCase().contains(((String) left).toLowerCase());
 							}
