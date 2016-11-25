@@ -282,6 +282,23 @@ public class VariableOperation<T> extends BaseOperation<T> {
 				}
 			}
 		}
+		// the next part is an operation but it is not a map or a list, try contextual access
+		else if (offset < getParts().size() - 1 && getParts().get(offset + 1).getType() == QueryPart.Type.OPERATION) {
+			// you have defined an index on the map, get a specific key
+			while (offset < getParts().size() - 1 && getParts().get(offset + 1).getType() == QueryPart.Type.OPERATION) {
+				Object key = ((Operation<T>) getParts().get(offset + 1).getContent()).evaluate(context);
+				object = getAccessor().get((T) object, key.toString());
+				offset++;
+			}
+			// if the indexes were the last part, return the result
+			if (offset == getParts().size() - 1) {
+				return object;
+			}
+			// otherwise, keep evaluating
+			else {
+				return evaluate((T) object, offset + 1);
+			}
+		}
 		// it's not a list, just recursively evaluate
 		else {
 			return evaluate((T) object, offset + 1);
