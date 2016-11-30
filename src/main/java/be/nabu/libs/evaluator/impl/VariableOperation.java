@@ -174,7 +174,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 			}
 		}
 		// check if it's a list
-		else if (object instanceof Collection || object instanceof Object[] || object instanceof Iterable) {
+		else if (object instanceof Collection || object instanceof Object[] || object.getClass().getSimpleName().equals("be.nabu.glue.core.api.CollectionIterable")) {
 			// if the next element is an operation, it is indexed
 			// if it returns a boolean, it has to be executed against each element in the list to filter
 			// otherwise if it's a number, you need access to a single element
