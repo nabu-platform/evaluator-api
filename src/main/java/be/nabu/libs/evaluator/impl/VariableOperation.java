@@ -48,6 +48,15 @@ public class VariableOperation<T> extends BaseOperation<T> {
 	 */
 	private static ThreadLocal<Stack<Integer>> rootStack = new ThreadLocal<Stack<Integer>>();
 	
+	private boolean isCollectionIterable(Object object) {
+		for (Class<?> ifaceClass : object.getClass().getInterfaces()) {
+			if (ifaceClass.getName().equals("be.nabu.glue.core.api.CollectionIterable")) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
 	@Override
 	public Object evaluate(T context) throws EvaluationException {
 		return evaluate(context, 0);
@@ -174,7 +183,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 			}
 		}
 		// check if it's a list
-		else if (object instanceof Collection || object instanceof Object[] || object.getClass().getSimpleName().equals("be.nabu.glue.core.api.CollectionIterable")) {
+		else if (object instanceof Collection || object instanceof Object[] || isCollectionIterable(object)) {
 			// if the next element is an operation, it is indexed
 			// if it returns a boolean, it has to be executed against each element in the list to filter
 			// otherwise if it's a number, you need access to a single element
