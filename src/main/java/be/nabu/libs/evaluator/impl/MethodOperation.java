@@ -8,9 +8,11 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.WeakHashMap;
 
 import be.nabu.libs.converter.ConverterFactory;
 import be.nabu.libs.evaluator.EvaluationException;
@@ -83,61 +85,67 @@ public class MethodOperation<T> extends BaseMethodOperation<T> {
 		return findMethod(fullName, -1);
 	}
 	
+	private static Map<String, Method> methodMap = Collections.synchronizedMap(new WeakHashMap<String, Method>());
+	
 	protected Method findMethod(String fullName, int amountOfParams) throws ClassNotFoundException {
-		List<Class<?>> classesToCheck = new ArrayList<Class<?>>();
-		String methodName = null;
-		// if you access a specific class, use that
-		if (fullName.contains(".")) {
-			String namespace = fullName.replaceAll("^(.*)\\.[^.]+$", "$1");
-			// check if it's a namespace of an existing class
-			for (Class<?> possibleClass : defaultClasses) {
-				MethodProviderClass annotation = possibleClass.getAnnotation(MethodProviderClass.class);
-				if (annotation != null && annotation.namespace() != null && !annotation.namespace().isEmpty()) {
-					if (namespace.equals(annotation.namespace())) {
+		String methodId = fullName + "::" + amountOfParams;
+		if (!methodMap.containsKey(methodId)) {
+			List<Class<?>> classesToCheck = new ArrayList<Class<?>>();
+			String methodName = null;
+			// if you access a specific class, use that
+			if (fullName.contains(".")) {
+				String namespace = fullName.replaceAll("^(.*)\\.[^.]+$", "$1");
+				// check if it's a namespace of an existing class
+				for (Class<?> possibleClass : defaultClasses) {
+					MethodProviderClass annotation = possibleClass.getAnnotation(MethodProviderClass.class);
+					if (annotation != null && annotation.namespace() != null && !annotation.namespace().isEmpty()) {
+						if (namespace.equals(annotation.namespace())) {
+							classesToCheck.add(possibleClass);
+						}
+					}
+					else if (possibleClass.getName().replaceAll("\\.[^.]+$", "").equals(namespace)) {
 						classesToCheck.add(possibleClass);
+						break;
 					}
 				}
-				else if (possibleClass.getName().replaceAll("\\.[^.]+$", "").equals(namespace)) {
-					classesToCheck.add(possibleClass);
-					break;
+				// if it's not in the listed classes, try to load it
+				if (classesToCheck.isEmpty()) {
+					classesToCheck.add(Class.forName(namespace));
 				}
+				methodName = fullName.replaceAll("^.*\\.([^.]+)$", "$1");
 			}
-			// if it's not in the listed classes, try to load it
-			if (classesToCheck.isEmpty()) {
-				classesToCheck.add(Class.forName(namespace));
+			// otherwise, assume the default "methods" class
+			else {
+				classesToCheck.addAll(defaultClasses);
+				methodName = fullName;
 			}
-			methodName = fullName.replaceAll("^.*\\.([^.]+)$", "$1");
-		}
-		// otherwise, assume the default "methods" class
-		else {
-			classesToCheck.addAll(defaultClasses);
-			methodName = fullName;
-		}
-		Method moreArgumentsMethod = null;
-		for (Class<?> clazz : classesToCheck) {
-			MethodProviderClass annotation = clazz.getAnnotation(MethodProviderClass.class);
-			boolean caseSensitive = annotation != null ? annotation.caseSensitive() : this.caseSensitive;
-			for (Method method : clazz.getDeclaredMethods()) {
-				if (Modifier.isPublic(method.getModifiers()) && Modifier.isStatic(method.getModifiers()) && ((caseSensitive && method.getName().equals(methodName)) || (!caseSensitive && method.getName().equalsIgnoreCase(methodName)))) {
-					if (methodFilter != null && !methodFilter.isAllowed(method)) {
-						continue;
-					}
-					// if the last parameter is an array, we will dynamically create an array at runtime
-					// this is to support varargs
-					if (amountOfParams < 0 || method.getParameterTypes().length == amountOfParams 
-							|| (method.getParameterTypes().length < amountOfParams && method.getParameterTypes().length > 0 && method.getParameterTypes()[method.getParameterTypes().length - 1].isArray())
-							// if the method has 1 parameter more than requested but it is an array, could be empty varargs
-							|| (method.getParameterTypes().length == amountOfParams + 1 && method.getParameterTypes().length > 0 && method.getParameterTypes()[method.getParameterTypes().length - 1].isArray())) {
-						return method;
-					}
-					// if the method has more arguments but we allow null completion, choose it
-					else if (allowNullCompletion && amountOfParams >= 0 && method.getParameterTypes().length > amountOfParams) {
-						moreArgumentsMethod = method;
+			Method moreArgumentsMethod = null;
+			for (Class<?> clazz : classesToCheck) {
+				MethodProviderClass annotation = clazz.getAnnotation(MethodProviderClass.class);
+				boolean caseSensitive = annotation != null ? annotation.caseSensitive() : this.caseSensitive;
+				for (Method method : clazz.getDeclaredMethods()) {
+					if (Modifier.isPublic(method.getModifiers()) && Modifier.isStatic(method.getModifiers()) && ((caseSensitive && method.getName().equals(methodName)) || (!caseSensitive && method.getName().equalsIgnoreCase(methodName)))) {
+						if (methodFilter != null && !methodFilter.isAllowed(method)) {
+							continue;
+						}
+						// if the last parameter is an array, we will dynamically create an array at runtime
+						// this is to support varargs
+						if (amountOfParams < 0 || method.getParameterTypes().length == amountOfParams 
+								|| (method.getParameterTypes().length < amountOfParams && method.getParameterTypes().length > 0 && method.getParameterTypes()[method.getParameterTypes().length - 1].isArray())
+								// if the method has 1 parameter more than requested but it is an array, could be empty varargs
+								|| (method.getParameterTypes().length == amountOfParams + 1 && method.getParameterTypes().length > 0 && method.getParameterTypes()[method.getParameterTypes().length - 1].isArray())) {
+							return method;
+						}
+						// if the method has more arguments but we allow null completion, choose it
+						else if (allowNullCompletion && amountOfParams >= 0 && method.getParameterTypes().length > amountOfParams) {
+							moreArgumentsMethod = method;
+						}
 					}
 				}
 			}
+			methodMap.put(methodId, moreArgumentsMethod);
 		}
-		return moreArgumentsMethod;
+		return methodMap.get(methodId);
 	}
 	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
