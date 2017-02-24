@@ -273,6 +273,7 @@ public class QueryParser {
 					}
 					// parse it as a long
 					if (type == Type.NUMBER_INTEGER || type == Type.NUMBER_DECIMAL) {
+						QueryPart bumped = null;
 						// check if it's a negative number
 						if (result.size() >= 1 && result.get(result.size() - 1).getType() == Type.SUBSTRACT) {
 							// if there is nothing before the subtract, it is definitely linked to the number
@@ -288,29 +289,37 @@ public class QueryParser {
 							if (isSign) {
 								token = "-" + token;
 								// remove the subtract from the tokens
-								result.remove(result.size() - 1);
+								bumped = result.remove(result.size() - 1);
 							}
 						}
+						// this is a variable added later on because of a very nasty bug: if we interpret the "-" as a sign, we threw away the token alltogether
+						// everything works because we update the number to be negative
+						// the only thing that breaks is the string token inside the query token, it still contains the original content of the number, without the leading sign
+						// so writing it out based on the string tokens would get you "1" instead of the original "-1"
+						// to fix this we create a new token that encompasses both existing tokens
+						StringToken tokenToUse = bumped == null ? tokens.get(i) : new StringToken(
+							bumped.getToken().getContent() + (tokens.get(i).getPreamble() == null ? "" : tokens.get(i).getPreamble()) + tokens.get(i).getContent(), 
+							bumped.getToken().getPreamble(), bumped.getToken().getStart(), tokens.get(i).getEnd());
 						if (type == Type.NUMBER_INTEGER) {
 							if (token.endsWith("b")) {
-								result.add(new QueryPart(tokens.get(i), type, new BigInteger(token.substring(0, token.length() - 1))));
+								result.add(new QueryPart(tokenToUse, type, new BigInteger(token.substring(0, token.length() - 1))));
 							}
 							else {
 								Long longValue = new Long(token);
 								if (longValue > Integer.MAX_VALUE || longValue < Integer.MIN_VALUE) {
-									result.add(new QueryPart(tokens.get(i), type, longValue));
+									result.add(new QueryPart(tokenToUse, type, longValue));
 								}
 								else {
-									result.add(new QueryPart(tokens.get(i), type, new Integer(longValue.intValue())));
+									result.add(new QueryPart(tokenToUse, type, new Integer(longValue.intValue())));
 								}
 							}
 						}
 						else {
 							if (token.endsWith("b")) {
-								result.add(new QueryPart(tokens.get(i), type, new BigDecimal(token.substring(0, token.length() - 1))));	
+								result.add(new QueryPart(tokenToUse, type, new BigDecimal(token.substring(0, token.length() - 1))));	
 							}
 							else {
-								result.add(new QueryPart(tokens.get(i), type, new Double(token)));
+								result.add(new QueryPart(tokenToUse, type, new Double(token)));
 							}
 						}
 					}
