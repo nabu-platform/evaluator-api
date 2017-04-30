@@ -53,6 +53,8 @@ public class MethodOperation<T> extends BaseMethodOperation<T> {
 	
 	private MethodFilter methodFilter;
 	
+	private Object context;
+	
 	public MethodOperation(Collection<Class<?>> classes) {
 		this.defaultClasses.addAll(classes);
 	}
@@ -124,7 +126,7 @@ public class MethodOperation<T> extends BaseMethodOperation<T> {
 				MethodProviderClass annotation = clazz.getAnnotation(MethodProviderClass.class);
 				boolean caseSensitive = annotation != null ? annotation.caseSensitive() : this.caseSensitive;
 				for (Method method : clazz.getDeclaredMethods()) {
-					if (Modifier.isPublic(method.getModifiers()) && Modifier.isStatic(method.getModifiers()) && ((caseSensitive && method.getName().equals(methodName)) || (!caseSensitive && method.getName().equalsIgnoreCase(methodName)))) {
+					if (Modifier.isPublic(method.getModifiers()) && (context != null || Modifier.isStatic(method.getModifiers())) && ((caseSensitive && method.getName().equals(methodName)) || (!caseSensitive && method.getName().equalsIgnoreCase(methodName)))) {
 						if (methodFilter != null && !methodFilter.isAllowed(method)) {
 							continue;
 						}
@@ -195,7 +197,7 @@ public class MethodOperation<T> extends BaseMethodOperation<T> {
 					arguments.set(i, ConverterFactory.getInstance().getConverter().convert(arguments.get(i), method.getParameterTypes()[i]));
 				}
 			}
-			return method.invoke(null, arguments.toArray());
+			return method.invoke(context, arguments.toArray());
 		}
 		catch (IllegalAccessException e) {
 			throw new EvaluationException(e);
@@ -221,8 +223,19 @@ public class MethodOperation<T> extends BaseMethodOperation<T> {
 	public void setCaseSensitive(boolean caseSensitive) {
 		this.caseSensitive = caseSensitive;
 	}
-	
+
+	public Object getContext() {
+		return context;
+	}
+
+	public void setContext(Object context) {
+		this.context = context;
+	}
+
+
+
 	public static interface MethodFilter {
 		public boolean isAllowed(Method method);
 	}
+	
 }
