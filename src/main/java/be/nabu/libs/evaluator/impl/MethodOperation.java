@@ -12,7 +12,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.WeakHashMap;
 
 import be.nabu.libs.converter.ConverterFactory;
 import be.nabu.libs.evaluator.EvaluationException;
@@ -87,10 +86,10 @@ public class MethodOperation<T> extends BaseMethodOperation<T> {
 		return findMethod(fullName, -1);
 	}
 	
-	private static Map<String, Method> methodMap = Collections.synchronizedMap(new WeakHashMap<String, Method>());
+	private static Map<String, Method> methodMap = Collections.synchronizedMap(new HashMap<String, Method>());
 	
 	protected Method findMethod(String fullName, int amountOfParams) throws ClassNotFoundException {
-		String methodId = fullName + "::" + amountOfParams;
+		String methodId = fullName + "::" + defaultClasses + "::" + (context == null) + "::" + amountOfParams;
 		if (!methodMap.containsKey(methodId)) {
 			List<Class<?>> classesToCheck = new ArrayList<Class<?>>();
 			String methodName = null;
@@ -136,7 +135,9 @@ public class MethodOperation<T> extends BaseMethodOperation<T> {
 								|| (method.getParameterTypes().length < amountOfParams && method.getParameterTypes().length > 0 && method.getParameterTypes()[method.getParameterTypes().length - 1].isArray())
 								// if the method has 1 parameter more than requested but it is an array, could be empty varargs
 								|| (method.getParameterTypes().length == amountOfParams + 1 && method.getParameterTypes().length > 0 && method.getParameterTypes()[method.getParameterTypes().length - 1].isArray())) {
-							return method;
+//							return method;
+							moreArgumentsMethod = method;
+							break;
 						}
 						// if the method has more arguments but we allow null completion, choose it
 						else if (allowNullCompletion && amountOfParams >= 0 && method.getParameterTypes().length > amountOfParams) {
@@ -197,7 +198,7 @@ public class MethodOperation<T> extends BaseMethodOperation<T> {
 					arguments.set(i, ConverterFactory.getInstance().getConverter().convert(arguments.get(i), method.getParameterTypes()[i]));
 				}
 			}
-			return method.invoke(context, arguments.toArray());
+			return method.invoke(this.context, arguments.toArray());
 		}
 		catch (IllegalAccessException e) {
 			throw new EvaluationException(e);
