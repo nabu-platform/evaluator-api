@@ -81,11 +81,11 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 					// don't get (and potentially evaluate) the right part if it's not necessary
 					switch (part.getType()) {
 						case LOGICAL_AND:
-							if (!(Boolean) left)
+							if (left == null || !getConverter().convert(left, Boolean.class))
 								return false;
 						break;
 						case LOGICAL_OR:
-							if ((Boolean) left)
+							if (left != null && getConverter().convert(left, Boolean.class))
 								return true;
 						break;
 					}
@@ -256,19 +256,43 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 								return getConverter().convert(result, left.getClass());
 							}
 						case BITWISE_AND:
+							if (left == null) {
+								left = false;
+							}
+							if (right == null) {
+								right = false;
+							}
 							if (left instanceof And) {
 								return ((And) left).and(right);
 							}
 							return getConverter().convert(left, Boolean.class) & getConverter().convert(right, Boolean.class);
 						case BITWISE_OR:
+							if (left == null) {
+								left = false;
+							}
+							if (right == null) {
+								right = false;
+							}
 							if (left instanceof Or) {
 								return ((Or) left).or(right);
 							}
 							right = getConverter().convert(right, left.getClass());
 							return getConverter().convert(left, Boolean.class) | getConverter().convert(right, Boolean.class);
 						case LOGICAL_AND:
+							if (left == null) {
+								left = false;
+							}
+							if (right == null) {
+								right = false;
+							}
 							return getConverter().convert(left, Boolean.class) && getConverter().convert(right, Boolean.class);
 						case LOGICAL_OR:
+							if (left == null) {
+								left = false;
+							}
+							if (right == null) {
+								right = false;
+							}
 							return getConverter().convert(left, Boolean.class) || getConverter().convert(right, Boolean.class);
 						case EQUALS:
 							if (left == null) {

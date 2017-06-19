@@ -49,6 +49,9 @@ public class VariableOperation<T> extends BaseOperation<T> {
 	private static ThreadLocal<Stack<Integer>> rootStack = new ThreadLocal<Stack<Integer>>();
 	
 	private boolean isCollectionIterable(Object object) {
+		if (object == null) {
+			return false;
+		}
 		for (Class<?> ifaceClass : object.getClass().getInterfaces()) {
 			if (ifaceClass.getName().equals("be.nabu.glue.core.api.CollectionIterable")) {
 				return true;
@@ -166,24 +169,16 @@ public class VariableOperation<T> extends BaseOperation<T> {
 		if (object == null || offset == getParts().size() - 1) {
 			return object;
 		}		
-		else if (object instanceof Map) {
+		if (object instanceof Map) {
 			// you have defined an index on the map, get a specific key
 			while (object instanceof Map && offset < getParts().size() - 1 && getParts().get(offset + 1).getType() == QueryPart.Type.OPERATION) {
 				Object key = ((Operation<T>) getParts().get(offset + 1).getContent()).evaluate(context);
 				object = ((Map) object).get(key);
 				offset++;
 			}
-			// if the indexes were the last part, return the result
-			if (offset == getParts().size() - 1) {
-				return object;
-			}
-			// otherwise, keep evaluating
-			else {
-				return evaluate((T) object, offset + 1);
-			}
 		}
 		// check if it's a list
-		else if (object instanceof Collection || object instanceof Object[] || isCollectionIterable(object)) {
+		if (object instanceof Collection || object instanceof Object[] || isCollectionIterable(object)) {
 			// if the next element is an operation, it is indexed
 			// if it returns a boolean, it has to be executed against each element in the list to filter
 			// otherwise if it's a number, you need access to a single element
@@ -194,6 +189,9 @@ public class VariableOperation<T> extends BaseOperation<T> {
 				// note that if it is _only_ a variable, we assume the variable is also a number, would be odd to have a boolean variable
 				if (isNumericAccess(offset + 1)) {
 					Number index = (Number) ((Operation<T>) getParts().get(offset + 1).getContent()).evaluate(context);
+					if (index == null) {
+						throw new IllegalArgumentException("The index can not be null: " + getParts().get(offset + 1).getContent());
+					}
 					if (object instanceof Iterable) {
 						Iterator iterator = ((Iterable) object).iterator();
 						for (long i = 0; i < index.longValue(); i++) {
@@ -237,11 +235,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 				}
 				offset++;
 			}
-			// if the index was the last part, just return the child
-			if (offset == getParts().size() - 1) {
-				return object;
-			}
-			else {
+			if (offset < getParts().size() - 1) {
 				String childPath = getParts().get(offset + 1).getContent().toString();
 				if (childPath.startsWith("/")) {
 					childPath = childPath.substring(1);
@@ -290,6 +284,10 @@ public class VariableOperation<T> extends BaseOperation<T> {
 					return evaluate((T) object, offset + 1);
 				}
 			}
+		}
+		// if the indexes were the last part, return the result
+		if (offset == getParts().size() - 1) {
+			return object;
 		}
 		// the next part is an operation but it is not a map or a list, try contextual access
 		else if (offset < getParts().size() - 1 && getParts().get(offset + 1).getType() == QueryPart.Type.OPERATION) {
