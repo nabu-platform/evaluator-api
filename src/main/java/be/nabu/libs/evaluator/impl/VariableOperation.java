@@ -294,6 +294,9 @@ public class VariableOperation<T> extends BaseOperation<T> {
 			// you have defined an index on the map, get a specific key
 			while (offset < getParts().size() - 1 && getParts().get(offset + 1).getType() == QueryPart.Type.OPERATION) {
 				Object key = ((Operation<T>) getParts().get(offset + 1).getContent()).evaluate(context);
+				if (key == null) {
+					throw new EvaluationException("Could not resolve key: " + getParts().get(offset + 1).getContent());
+				}
 				object = getAccessor().get((T) object, key.toString());
 				offset++;
 			}

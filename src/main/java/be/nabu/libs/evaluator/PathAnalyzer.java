@@ -148,7 +148,8 @@ public class PathAnalyzer<T> implements Analyzer<T> {
 			}
 			
 			// if we meet a variable, we need to concatenate all the variable bits into one "operation"
-			else if (token.getToken().getType() == Type.VARIABLE) {
+			// if we have indexed access immediately following a method call, we want to access the return of that method
+			else if (token.getToken().getType() == Type.VARIABLE || (token.getToken().getType() == Type.INDEX_START && last != null && last.getType() == OperationType.METHOD)) {
 				// the operation to hold the variable resolution
 				Operation<T> variableOperation = operationProvider.newOperation(OperationType.VARIABLE);
 				
