@@ -80,7 +80,7 @@ public class QueryParser {
 		// each "part" of the variable can start with a "@" or a "$" where "@" is for attribute and "$" is for an internal variable
 		// each variable name MUST begin with a character
 		// dots are allowed in the variable name because for method namespaces, they must be followed by a "("
-		parts.put(Type.VARIABLE, "((/|)(@|)(?:(?:\\b[a-zA-Z]+|\\$)[\\w.]*|\\.\\.))+\\b");
+		parts.put(Type.VARIABLE, "((/|)(@|)(?:(?:\\b[a-zA-Z_]+|\\$)[\\w.]*|\\.\\.))+\\b");
 		parts.put(Type.SEPARATOR, ",");
 		parts.put(Type.SCOPE_START, "\\(");
 		parts.put(Type.SCOPE_STOP, "\\)");

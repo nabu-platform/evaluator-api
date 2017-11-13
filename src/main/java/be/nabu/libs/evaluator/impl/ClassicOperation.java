@@ -81,12 +81,27 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 					// don't get (and potentially evaluate) the right part if it's not necessary
 					switch (part.getType()) {
 						case LOGICAL_AND:
-							if (left == null || !getConverter().convert(left, Boolean.class))
+							// if the left is null, we set it to false
+							if (left == null) {
 								return false;
+							}
+							// if we can convert it to a boolean and it is false, we don't execute the right hand side
+							else {
+								Boolean newLeft = getConverter().convert(left, Boolean.class);
+								if (newLeft != null && !newLeft) {
+									return false;
+								}
+							}
 						break;
 						case LOGICAL_OR:
-							if (left != null && getConverter().convert(left, Boolean.class))
-								return true;
+							// if the left is not null, it has a chance of being true in which case we don't have to check the right operand
+							if (left != null) {
+								Boolean newLeft = getConverter().convert(left, Boolean.class);
+								// if it can not be converted to boolean, we assume true (because not null), otherwise if the boolean is true we don't want to execute the right hand side
+								if (newLeft == null || newLeft) {
+									return true;
+								}
+							}
 						break;
 					}
 					
@@ -267,33 +282,59 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							}
 							return getConverter().convert(left, Boolean.class) & getConverter().convert(right, Boolean.class);
 						case BITWISE_OR:
+							if (left instanceof Or) {
+								return ((Or) left).or(right);
+							}
 							if (left == null) {
 								left = false;
 							}
 							if (right == null) {
 								right = false;
-							}
-							if (left instanceof Or) {
-								return ((Or) left).or(right);
 							}
 							right = getConverter().convert(right, left.getClass());
 							return getConverter().convert(left, Boolean.class) | getConverter().convert(right, Boolean.class);
 						case LOGICAL_AND:
+							if (left instanceof And) {
+								return ((And) left).and(right);
+							}
 							if (left == null) {
 								left = false;
+							}
+							else {
+								Boolean newLeft = getConverter().convert(left, Boolean.class);
+								// the left value is not null, if we can't convert it to a boolean, we set it to true (==  not null)
+								left = newLeft != null ? newLeft : true;
 							}
 							if (right == null) {
 								right = false;
 							}
-							return getConverter().convert(left, Boolean.class) && getConverter().convert(right, Boolean.class);
+							else {
+								Boolean newRight = getConverter().convert(right, Boolean.class);
+								// the left value is not null, if we can't convert it to a boolean, we set it to true (==  not null)
+								right = newRight != null ? newRight : true;
+							}
+							return (Boolean) left && (Boolean) right;
 						case LOGICAL_OR:
+							if (left instanceof Or) {
+								return ((Or) left).or(right);
+							}
 							if (left == null) {
 								left = false;
+							}
+							else {
+								Boolean newLeft = getConverter().convert(left, Boolean.class);
+								// the left value is not null, if we can't convert it to a boolean, we set it to true (==  not null)
+								left = newLeft != null ? newLeft : true;
 							}
 							if (right == null) {
 								right = false;
 							}
-							return getConverter().convert(left, Boolean.class) || getConverter().convert(right, Boolean.class);
+							else {
+								Boolean newRight = getConverter().convert(right, Boolean.class);
+								// the left value is not null, if we can't convert it to a boolean, we set it to true (==  not null)
+								right = newRight != null ? newRight : true;
+							}
+							return (Boolean) left || (Boolean) right;
 						case EQUALS:
 							if (left == null) {
 								return right == null ? true : false;
@@ -317,15 +358,27 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 								return !left.equals(right);
 							}
 						case GREATER:
+							if (left == null || right == null) {
+								return false;
+							}
 							right = getConverter().convert(right, left.getClass());
 							return ((Comparable) left).compareTo((Comparable) right) > 0;
 						case GREATER_OR_EQUALS:
+							if (left == null || right == null) {
+								return false;
+							}
 							right = getConverter().convert(right, left.getClass());
 							return ((Comparable) left).compareTo((Comparable) right) >= 0;
 						case LESSER:
+							if (left == null || right == null) {
+								return false;
+							}
 							right = getConverter().convert(right, left.getClass());
 							return ((Comparable) left).compareTo((Comparable) right) < 0;
 						case LESSER_OR_EQUALS:
+							if (left == null || right == null) {
+								return false;
+							}
 							right = getConverter().convert(right, left.getClass());
 							return ((Comparable) left).compareTo((Comparable) right) <= 0;
 						case IN:
@@ -339,7 +392,10 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							}
 							else if (right instanceof Iterable) {
 								for (Object single : (Iterable) right) {
-									if (single != null && single.equals(left)) {
+									if (left == null && single == null) {
+										return true;
+									}
+									else if (single != null && single.equals(left)) {
 										return true;
 									}
 								}
@@ -360,7 +416,10 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							}
 							else if (right instanceof Iterable) {
 								for (Object single : (Iterable) right) {
-									if (single != null && single.equals(left)) {
+									if (left == null && single == null) {
+										return false;
+									}
+									else if (single != null && single.equals(left)) {
 										return false;
 									}
 								}
@@ -371,7 +430,18 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 								return !list2.contains(left);
 							}
 						case NOT:
-							return !getConverter().convert(right, Boolean.class);
+							// if there is no right, we consider it false and the inverse true
+							if (right == null) {
+								return true;
+							}
+							Boolean newRight = getConverter().convert(right, Boolean.class);
+							// if we can't transform the right operand to a boolean and it is not null (see above), we return false
+							if (newRight == null) {
+								return false;
+							}
+							else {
+								return !newRight;
+							}
 						case MATCHES:
 							left = getConverter().convert(left, String.class);
 							right = getConverter().convert(right, String.class);
