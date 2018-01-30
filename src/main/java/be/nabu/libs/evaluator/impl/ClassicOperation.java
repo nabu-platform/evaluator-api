@@ -443,10 +443,16 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 								return !newRight;
 							}
 						case MATCHES:
+							if (left == null) {
+								return false;
+							}
 							left = getConverter().convert(left, String.class);
 							right = getConverter().convert(right, String.class);
 							return ((String) left).matches((String) right);
 						case NOT_MATCHES:
+							if (left == null) {
+								return true;
+							}
 							left = getConverter().convert(left, String.class);
 							right = getConverter().convert(right, String.class);
 							return !((String) left).matches((String) right);

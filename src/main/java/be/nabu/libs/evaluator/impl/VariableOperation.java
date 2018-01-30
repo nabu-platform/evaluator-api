@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Stack;
 import java.util.concurrent.Callable;
 
+import be.nabu.libs.converter.ConverterFactory;
 import be.nabu.libs.evaluator.ContextAccessorFactory;
 import be.nabu.libs.evaluator.EvaluationException;
 import be.nabu.libs.evaluator.QueryPart;
@@ -173,6 +174,11 @@ public class VariableOperation<T> extends BaseOperation<T> {
 			// you have defined an index on the map, get a specific key
 			while (object instanceof Map && offset < getParts().size() - 1 && getParts().get(offset + 1).getType() == QueryPart.Type.OPERATION) {
 				Object key = ((Operation<T>) getParts().get(offset + 1).getContent()).evaluate(context);
+				// if the key is not in the map and the first key of the map is a string, we assume all keys are strings and convert to it
+				// this can be broadened to support other types as well but the primary usecase is currently nabu where maps are only used with string keys
+				if (!((Map) object).containsKey(key) && ((Map) object).size() > 0 && ((Map) object).keySet().iterator().next() instanceof String) {
+					key = ConverterFactory.getInstance().getConverter().convert(key, String.class);
+				}
 				object = ((Map) object).get(key);
 				offset++;
 			}
