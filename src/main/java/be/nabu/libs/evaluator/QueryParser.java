@@ -172,9 +172,13 @@ public class QueryParser {
 		
 	public List<QueryPart> parse(String query) throws ParseException {
 		if (!parsed.containsKey(query)) {
-			List<QueryPart> tokens = interpret(tokenize(query), false);
-			validate(tokens);
-			parsed.put(query, tokens);
+			synchronized(parsed) {
+				if (!parsed.containsKey(query)) {
+					List<QueryPart> tokens = interpret(tokenize(query), false);
+					validate(tokens);
+					parsed.put(query, tokens);
+				}
+			}
 		}
 		return parsed.get(query);
 	}
