@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.ServiceLoader;
+import java.util.concurrent.Callable;
 
 import be.nabu.libs.converter.ConverterFactory;
 import be.nabu.libs.converter.api.Converter;
@@ -395,6 +396,10 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 									if (left == null && single == null) {
 										return true;
 									}
+									// for lazily resolved series
+									else if (single instanceof Callable && ((Callable) single).call().equals(left)) {
+										return true;
+									}
 									else if (single != null && single.equals(left)) {
 										return true;
 									}
@@ -417,6 +422,10 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							else if (right instanceof Iterable) {
 								for (Object single : (Iterable) right) {
 									if (left == null && single == null) {
+										return false;
+									}
+									// for lazily resolved series
+									else if (single instanceof Callable && ((Callable) single).call().equals(left)) {
 										return false;
 									}
 									else if (single != null && single.equals(left)) {
