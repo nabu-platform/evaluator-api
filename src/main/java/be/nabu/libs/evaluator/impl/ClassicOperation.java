@@ -396,12 +396,22 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 									if (left == null && single == null) {
 										return true;
 									}
-									// for lazily resolved series
-									else if (single instanceof Callable && ((Callable) single).call().equals(left)) {
-										return true;
+									else if (left == null) {
+										continue;
 									}
-									else if (single != null && single.equals(left)) {
-										return true;
+									// for lazily resolved series
+									else if (single instanceof Callable) {
+										Object singleResult = ((Callable) single).call();
+										singleResult = getConverter().convert(singleResult, left.getClass());
+										if (left.equals(singleResult)) {
+											return true;
+										}
+									}
+									else if (single != null) {
+										single = getConverter().convert(single, left.getClass());
+										if (left.equals(single)) {
+											return true;
+										}
 									}
 								}
 								return false;
@@ -424,12 +434,22 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 									if (left == null && single == null) {
 										return false;
 									}
-									// for lazily resolved series
-									else if (single instanceof Callable && ((Callable) single).call().equals(left)) {
-										return false;
+									else if (left == null) {
+										continue;
 									}
-									else if (single != null && single.equals(left)) {
-										return false;
+									// for lazily resolved series
+									else if (single instanceof Callable) {
+										Object singleResult = ((Callable) single).call();
+										singleResult = getConverter().convert(singleResult, left.getClass());
+										if (left.equals(singleResult)) {
+											return false;
+										}
+									}
+									else if (single != null) {
+										single = getConverter().convert(single, left.getClass());
+										if (left.equals(single)) {
+											return false;
+										}
 									}
 								}
 								return true;

@@ -1,15 +1,22 @@
 package be.nabu.libs.evaluator.impl;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import be.nabu.libs.evaluator.EvaluationException;
-import be.nabu.libs.evaluator.api.ContextAccessor;
+import be.nabu.libs.evaluator.api.AnnotatedContextAccessor;
+import be.nabu.libs.evaluator.api.ListableContextAccessor;
 
-public class JavaContextAccessor implements ContextAccessor<Object> {
+public class JavaContextAccessor implements ListableContextAccessor<Object>, AnnotatedContextAccessor<Object> {
 	
 	private static Map<Class<?>, Map<String, Method>> getters = new HashMap<Class<?>, Map<String, Method>>();
 	
@@ -36,6 +43,44 @@ public class JavaContextAccessor implements ContextAccessor<Object> {
 			}
 		}
 		return getters.get(clazz).get(name);
+	}
+	
+	private static Set<String> getAll(Class<?> clazz) {
+		if (!getters.containsKey(clazz)) {
+			synchronized(getters) {
+				if (!getters.containsKey(clazz)) {
+					Map<String, Method> map = new HashMap<String, Method>();
+					for (Method method : clazz.getMethods()) {
+						if (method.getName().startsWith("get") && method.getParameterCount() == 0) {
+							String name = method.getName().substring("get".length());
+							name = name.substring(0, 1).toLowerCase() + name.substring(1);
+							map.put(name, method);
+						}
+					}
+					getters.put(clazz, map);
+				}
+			}
+		}
+		return getters.get(clazz).keySet();
+	}
+	
+	// annotations don't follow the bean spec
+	private static Set<String> getAllAnnotation(Class<?> clazz) {
+		if (!getters.containsKey(clazz)) {
+			synchronized(getters) {
+				if (!getters.containsKey(clazz)) {
+					List<String> ignore = Arrays.asList("toString", "hashCode", "equals", "annotationType", "wait", "notify", "notifyAll");
+					Map<String, Method> map = new HashMap<String, Method>();
+					for (Method method : clazz.getMethods()) {
+						if (method.getParameterCount() == 0 && ignore.indexOf(method.getName()) < 0) {
+							map.put(method.getName(), method);
+						}
+					}
+					getters.put(clazz, map);
+				}
+			}
+		}
+		return getters.get(clazz).keySet();
 	}
 	
 	@Override
@@ -95,6 +140,34 @@ public class JavaContextAccessor implements ContextAccessor<Object> {
 			}
 			catch (InvocationTargetException e) {
 				throw new EvaluationException(e);
+			}
+		}
+		return null;
+	}
+
+	@Override
+	public Collection<String> list(Object object) {
+		List<String> list = new ArrayList<String>();
+		if (object != null) {
+			list.addAll(getAll(object.getClass()));
+		}
+		return list;
+	}
+
+	@Override
+	public Map<String, Object> getAnnotation(Object instance, String field, String annotation) throws EvaluationException {
+		if (instance != null) {
+			Method getter = getGetter(instance.getClass(), field);
+			if (getter != null) {
+				for (Annotation potential : getter.getAnnotations()) {
+					if (potential.annotationType().getName().equals(annotation) || potential.annotationType().getSimpleName().equals(annotation)) {
+						Map<String, Object> map = new HashMap<String, Object>();
+						for (String annotationField : getAllAnnotation(potential.getClass())) {
+							map.put(annotationField, get(potential, annotationField));
+						}
+						return map;
+					}
+				}
 			}
 		}
 		return null;
