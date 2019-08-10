@@ -50,8 +50,9 @@ public class JavaContextAccessor implements ListableContextAccessor<Object>, Ann
 			synchronized(getters) {
 				if (!getters.containsKey(clazz)) {
 					Map<String, Method> map = new HashMap<String, Method>();
+					List<String> ignore = Arrays.asList("getClass");
 					for (Method method : clazz.getMethods()) {
-						if (method.getName().startsWith("get") && method.getParameterCount() == 0) {
+						if (method.getName().startsWith("get") && method.getParameterCount() == 0 && ignore.indexOf(method.getName()) < 0) {
 							String name = method.getName().substring("get".length());
 							name = name.substring(0, 1).toLowerCase() + name.substring(1);
 							map.put(name, method);
@@ -69,7 +70,7 @@ public class JavaContextAccessor implements ListableContextAccessor<Object>, Ann
 		if (!getters.containsKey(clazz)) {
 			synchronized(getters) {
 				if (!getters.containsKey(clazz)) {
-					List<String> ignore = Arrays.asList("toString", "hashCode", "equals", "annotationType", "wait", "notify", "notifyAll");
+					List<String> ignore = Arrays.asList("toString", "hashCode", "equals", "annotationType", "wait", "notify", "notifyAll", "getClass");
 					Map<String, Method> map = new HashMap<String, Method>();
 					for (Method method : clazz.getMethods()) {
 						if (method.getParameterCount() == 0 && ignore.indexOf(method.getName()) < 0) {
@@ -130,16 +131,16 @@ public class JavaContextAccessor implements ListableContextAccessor<Object>, Ann
 				}
 			}
 			catch (IllegalAccessException e) {
-				throw new EvaluationException(e);
+				throw new EvaluationException("Could not get field '" + name + "' in " + context.getClass(), e);
 			}
 			catch (NoSuchFieldException e) {
-				throw new EvaluationException(e);
+				throw new EvaluationException("Could not get field '" + name + "' in " + context.getClass(), e);
 			}
 			catch (SecurityException e) {
-				throw new EvaluationException(e);
+				throw new EvaluationException("Could not get field '" + name + "' in " + context.getClass(), e);
 			}
 			catch (InvocationTargetException e) {
-				throw new EvaluationException(e);
+				throw new EvaluationException("Could not get field '" + name + "' in " + context.getClass(), e);
 			}
 		}
 		return null;
