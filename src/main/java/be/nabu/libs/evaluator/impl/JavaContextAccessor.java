@@ -15,10 +15,12 @@ import java.util.Set;
 import be.nabu.libs.evaluator.EvaluationException;
 import be.nabu.libs.evaluator.api.AnnotatedContextAccessor;
 import be.nabu.libs.evaluator.api.ListableContextAccessor;
+import be.nabu.libs.evaluator.api.WritableContextAccessor;
 
-public class JavaContextAccessor implements ListableContextAccessor<Object>, AnnotatedContextAccessor<Object> {
+public class JavaContextAccessor implements ListableContextAccessor<Object>, AnnotatedContextAccessor<Object>, WritableContextAccessor<Object> {
 	
 	private static Map<Class<?>, Map<String, Method>> getters = new HashMap<Class<?>, Map<String, Method>>();
+	private static Map<Class<?>, Map<String, Method>> setters = new HashMap<Class<?>, Map<String, Method>>();
 	
 	private static Method getGetter(Class<?> clazz, String name) {
 		if (!getters.containsKey(clazz)) {
@@ -43,6 +45,31 @@ public class JavaContextAccessor implements ListableContextAccessor<Object>, Ann
 			}
 		}
 		return getters.get(clazz).get(name);
+	}
+	
+	private static Method getSetter(Class<?> clazz, String name) {
+		if (!setters.containsKey(clazz)) {
+			synchronized(setters) {
+				if (!setters.containsKey(clazz)) {
+					setters.put(clazz, new HashMap<String, Method>());
+				}
+			}
+		}
+		if (!setters.get(clazz).containsKey(name)) {
+			synchronized(setters.get(clazz)) {
+				if (!setters.get(clazz).containsKey(name)) {
+					Method found = null;
+					for (Method method : clazz.getMethods()) {
+						if (method.getName().equals("set" + name.substring(0, 1).toUpperCase() + name.substring(1))) {
+							found = method;
+							break;
+						}
+					}
+					setters.get(clazz).put(name, found);
+				}
+			}
+		}
+		return setters.get(clazz).get(name);
 	}
 	
 	private static Set<String> getAll(Class<?> clazz) {
@@ -101,8 +128,9 @@ public class JavaContextAccessor implements ListableContextAccessor<Object>, Ann
 					return context.getClass().getDeclaredField(name) != null;
 				}
 			}
+			// if we don't return false here, we can't do the java-method-as-lambda stuff... :(
 			catch (NoSuchFieldException e) {
-				throw new EvaluationException(e);
+				return false;
 			}
 			catch (SecurityException e) {
 				throw new EvaluationException(e);
@@ -145,6 +173,32 @@ public class JavaContextAccessor implements ListableContextAccessor<Object>, Ann
 		}
 		return null;
 	}
+	
+	@Override
+	public void set(Object context, String name, Object value) throws EvaluationException {
+		if (context != null) {
+			try {
+				Method method = getSetter(context.getClass(), name);
+				if (method != null) {
+					if (!method.isAccessible()) {
+						method.setAccessible(true);
+					}
+					method.invoke(context, value);
+				}
+				else {
+					Field field = context.getClass().getDeclaredField(name);
+					if (!field.isAccessible()) {
+						field.setAccessible(true);
+					}
+					field.set(context, value);
+				}
+			}
+			catch (Exception e) {
+				throw new EvaluationException("Could not set field '" + name + "' in " + context.getClass(), e);
+			}
+		}
+	}
+	
 
 	@Override
 	public Collection<String> list(Object object) {
@@ -173,5 +227,5 @@ public class JavaContextAccessor implements ListableContextAccessor<Object>, Ann
 		}
 		return null;
 	}
-	
+
 }

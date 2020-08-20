@@ -8,9 +8,10 @@ import java.util.concurrent.Callable;
 
 import be.nabu.libs.evaluator.EvaluationException;
 import be.nabu.libs.evaluator.api.ContextAccessor;
+import be.nabu.libs.evaluator.api.WritableContextAccessor;
 
 @SuppressWarnings("rawtypes")
-public class CollectionContextAccessor implements ContextAccessor<Collection> {
+public class CollectionContextAccessor implements ContextAccessor<Collection>, WritableContextAccessor<Collection> {
 
 	@Override
 	public Class<Collection> getContextType() {
@@ -58,6 +59,34 @@ public class CollectionContextAccessor implements ContextAccessor<Collection> {
 			return list;
 		}
 		throw new IllegalArgumentException("The object can not be converted to a list");
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public void set(Collection context, String name, Object value) throws EvaluationException {
+		// we expect the name to be $1 etc
+		int index = name.startsWith("$") ? Integer.parseInt(name.substring(1)) : Integer.parseInt(name);
+		
+		// if the collection is smaller, we don't have to do anything special
+		if (context.size() <= index) {
+			// fill with nulls until we get there
+			while (context.size() < index) {
+				context.add(null);
+			}
+			// at position of index, we do this
+			context.add(value);
+		}
+		// if it is a list, we can set in the correct position
+		else if (context instanceof List) {
+			((List) context).set(index, value);
+		}
+		// otherwise it gets heavy...
+		else {
+			List list = new ArrayList(context);
+			list.set(index, value);
+			context.removeAll(context);
+			context.addAll(list);
+		}
 	}
 
 }
