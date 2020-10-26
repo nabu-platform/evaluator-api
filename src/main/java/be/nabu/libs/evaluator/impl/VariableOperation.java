@@ -106,6 +106,10 @@ public class VariableOperation<T> extends BaseOperation<T> {
 		}
 	}
 	
+	public static Object getCurrentContext() {
+		return contextStack == null || contextStack.get() == null || contextStack.get().isEmpty() ? null : contextStack.get().peek();
+	}
+	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private Object evaluate(int offset) throws EvaluationException {
 		Object object = null;
