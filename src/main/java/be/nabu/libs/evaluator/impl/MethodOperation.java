@@ -50,6 +50,9 @@ public class MethodOperation<T> extends BaseMethodOperation<T> {
 	
 	private boolean allowNullCompletion = true;
 	
+	// allow access to any class
+	private boolean allowAnyClass = true;
+	
 	private MethodFilter methodFilter;
 	
 	private Object context;
@@ -110,7 +113,7 @@ public class MethodOperation<T> extends BaseMethodOperation<T> {
 					}
 				}
 				// if it's not in the listed classes, try to load it
-				if (classesToCheck.isEmpty()) {
+				if (allowAnyClass && classesToCheck.isEmpty()) {
 					classesToCheck.add(Thread.currentThread().getContextClassLoader().loadClass(namespace));
 				}
 				methodName = fullName.replaceAll("^.*\\.([^.]+)$", "$1");
@@ -233,10 +236,15 @@ public class MethodOperation<T> extends BaseMethodOperation<T> {
 		this.context = context;
 	}
 
-
-
 	public static interface MethodFilter {
 		public boolean isAllowed(Method method);
 	}
-	
+
+	public boolean isAllowAnyClass() {
+		return allowAnyClass;
+	}
+
+	public void setAllowAnyClass(boolean allowAnyClass) {
+		this.allowAnyClass = allowAnyClass;
+	}
 }
