@@ -333,11 +333,14 @@ public class PathAnalyzer<T> implements Analyzer<T> {
 					// add the operator itself
 					operation.add(token.getToken());
 					
-					// if you are expecting a right operand, add it
-					if (token.getToken().getType().hasRightOperand()) {
+					// if you are expecting a right operand, add it (if it exists!)
+					if (token.getToken().getType().hasRightOperand() && token.getNext() != null) {
 						operation.add(token.getNext().getToken());
 						// remove it
 						token.getNext().remove();
+					}
+					else if (token.getToken().getType().hasRightOperand() && token.getNext() == null) {
+						throw new ParseException("Missing right operand for: " + token.getToken(), 0);
 					}
 					
 					// remove the new operation after the operator
