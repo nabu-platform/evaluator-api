@@ -345,6 +345,15 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							}
 							else {
 								right = getConverter().convert(right, left.getClass());
+								// the bigdecimal equals() method is _not_ in sync with the compareTo
+								// the compareTo strongly recommends keeping these two in sync but does not mandate it
+								// this appears to be one of the edge cases
+								// bigdecimal takes precision into account with an equals, not so with a compare
+								// so when equals 2.0 is not the same as 2.00 but compareto does return 0
+								// we are only interested in sane definitions...
+								if (left instanceof BigDecimal && right instanceof BigDecimal) {
+									return ((BigDecimal) left).compareTo((BigDecimal) right) == 0;
+								}
 								return left.equals(right);
 							}
 						case NOT_EQUALS:
@@ -356,6 +365,15 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							}
 							else {
 								right = getConverter().convert(right, left.getClass());
+								// the bigdecimal equals() method is _not_ in sync with the compareTo
+								// the compareTo strongly recommends keeping these two in sync but does not mandate it
+								// this appears to be one of the edge cases
+								// bigdecimal takes precision into account with an equals, not so with a compare
+								// so when equals 2.0 is not the same as 2.00 but compareto does return 0
+								// we are only interested in sane definitions...
+								if (left instanceof BigDecimal && right instanceof BigDecimal) {
+									return ((BigDecimal) left).compareTo((BigDecimal) right) != 0;
+								}
 								return !left.equals(right);
 							}
 						case GREATER:
