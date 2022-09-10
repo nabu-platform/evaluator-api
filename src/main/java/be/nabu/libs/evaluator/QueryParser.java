@@ -98,7 +98,8 @@ public class QueryParser {
 		parts.put(Type.DECREASE, "--");
 		parts.put(Type.ADD, "\\+");
 		parts.put(Type.SUBSTRACT, "-");
-		parts.put(Type.DIVIDE, "/|\\bdiv\\b");
+		// in linux type "ctrl+shift+u", this adds an underlined u to the screen, type the code 00f7<enter> which will turn into the division sign. you can also just enter f7<enter>
+		parts.put(Type.DIVIDE, "/|÷|\\bdiv\\b");
 		parts.put(Type.NOT_IN, "!#|\\bnot in\\b");
 		parts.put(Type.IN, "#|\\bin\\b");
 		parts.put(Type.GREATER_OR_EQUALS, ">=");
