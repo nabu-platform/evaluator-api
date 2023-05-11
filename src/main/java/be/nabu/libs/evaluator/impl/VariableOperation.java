@@ -170,6 +170,15 @@ public class VariableOperation<T> extends BaseOperation<T> {
 			}
 		}
 		
+		// @2023-03-15: if we want to do queried list access (so NOT numeric), we want an empty collection instead of null
+		if (object == null) {
+			if (offset < getParts().size() - 1 && getParts().get(offset + 1).getType() == QueryPart.Type.OPERATION && !isNumericAccess(offset + 1)) {
+				return new ArrayList();
+			}
+			else {
+				return null;
+			}
+		}
 		// it's null or you have reached the end, just return what you get
 		if (object == null || offset == getParts().size() - 1) {
 			return object;
