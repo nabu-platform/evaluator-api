@@ -78,9 +78,10 @@ public class QueryParser {
 		// a method must be followed by an opening scope and must start and end with a \w
 		parts.put(Type.METHOD, "([$]+|\\b[a-zA-Z]+)[\\w.]*[\\w]*(?=[\\s]*\\()");
 		// each "part" of the variable can start with a "@" or a "$" where "@" is for attribute and "$" is for an internal variable
+		// we can use the section sign § to indicate if we want cross sections of something
 		// each variable name MUST begin with a character
 		// dots are allowed in the variable name because for method namespaces, they must be followed by a "("
-		parts.put(Type.VARIABLE, "((/|)(@|)(?:(?:\\b[a-zA-Z_]+|\\$)[\\w.]*|\\.\\.))+\\b");
+		parts.put(Type.VARIABLE, "((/|)(@|)(?:(?:\\b[a-zA-Z_]+|\\$|§)[\\w.]*|\\.\\.))+\\b");
 		parts.put(Type.SEPARATOR, ",");
 		parts.put(Type.SCOPE_START, "\\(");
 		parts.put(Type.SCOPE_STOP, "\\)");

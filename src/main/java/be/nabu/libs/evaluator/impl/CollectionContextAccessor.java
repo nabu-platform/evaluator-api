@@ -20,7 +20,7 @@ public class CollectionContextAccessor implements ContextAccessor<Collection>, W
 
 	@Override
 	public boolean has(Collection context, String name) throws EvaluationException {
-		return context != null && name.matches("\\$[0-9]+") && listify(context).size() > new Integer(name.substring(1));
+		return context != null && (name.matches("\\$[0-9]+") || name.matches("§[0-9]+")) && listify(context).size() > new Integer(name.substring(1));
 	}
 
 	@Override

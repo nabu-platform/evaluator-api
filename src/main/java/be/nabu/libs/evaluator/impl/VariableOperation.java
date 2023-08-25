@@ -40,6 +40,36 @@ public class VariableOperation<T> extends BaseOperation<T> {
 	private static ThreadLocal<Stack<?>> contextStack = new ThreadLocal<Stack<?>>();
 	
 	/**
+	 * Suppose you have this
+	 * 
+	 * a = [ [1, 2], [2, 3] ]
+	 * 
+	 * If you print out a[0], you get [1, 2], if you print out a/$0 (with this option turned off), you get the same output [1, 2].
+	 * So this access is identical. And it is mostly meant for subqueries like this:
+	 * 
+	 * a[$0 == 2 || $1 == 2][0]
+	 * 
+	 * This will return [1,2] which is the first row that matches the given query
+	 * Here you want to reference indexed items in non-indexed way.
+	 * 
+	 * There is however a discrepancy, if you do this:
+	 * 
+	 * a[$0 == 2 || $1 == 2]/$0
+	 * 
+	 * This will return [1,1]! It actually creates a list of all the first columns of the rows that match
+	 * 
+	 * The feature to draw columns from dimensional objects is very interesting, so first instinct was to make it global so a/$0 also draws a list of columns.
+	 * If you enable the following option, you get this behavior.
+	 * 
+	 * HOWEVER, it will also disable the use of indexed access in queries, a[$0 == 2], here $0 would expand to include all the first columns of that particular record, so for instance [1] rather than the original behavior which was 1.
+	 */
+	public static boolean alwaysUseConcatenationForDollarIndex = Boolean.parseBoolean(System.getProperty("glue.alwaysUseConcatenationForDollarIndex", "false"));
+	/**
+	 * This option fixes the other way: we never generate columns with $0 access
+	 */
+	public static boolean neverUseConcatenationForDollarIndex = Boolean.parseBoolean(System.getProperty("glue.neverUseConcatenationForDollarIndex", "true"));
+	
+	/**
 	 * The "root" of a given context is not necessarily the actual root context, this allows you to define root stacks
 	 * For example we have a glue script acting as an HTML page
 	 * It calls a translation service that is provided by the nabu service stack, this adds the glue script as the root context because that is the very first execution in the thread
@@ -79,6 +109,10 @@ public class VariableOperation<T> extends BaseOperation<T> {
 	
 	protected boolean isNumericAccess(Operation<T> operation) {
 		if (operation.getType() == OperationType.NATIVE || operation.getType() == OperationType.VARIABLE) {
+			// you can do something like a[true] which simply selects all a
+			if ("true".equals(operation.toString()) || "false".equals(operation.toString())) {
+				return false;
+			}
 			return true;
 		}
 		else if (operation.getType() == OperationType.CLASSIC) {
@@ -265,7 +299,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 				// the first one is indexed access to the array, the second one builds a result set in memory, then selects all the $1 from that resultset
 				// the second basically returns a list of all possible "$1" values whereas the first selects the "$1" value for a specific array
 				// this is why we have the boolean isConcatenatedResult that indicates which situation we are in
-				while (((object instanceof Collection || object instanceof Object[] || object instanceof Iterable) && !isConcatenatedResult && childPath.matches("\\$[0-9]+")) || object instanceof Map) {
+				while (((object instanceof Collection || object instanceof Object[] || object instanceof Iterable) && (!isConcatenatedResult || neverUseConcatenationForDollarIndex) && !alwaysUseConcatenationForDollarIndex && childPath.matches("^\\$[0-9]+$")) || object instanceof Map) {
 					if (object instanceof Iterable) {
 						object = CollectionContextAccessor.listify(object);
 					}
