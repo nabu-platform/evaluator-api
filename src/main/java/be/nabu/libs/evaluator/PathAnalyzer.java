@@ -448,7 +448,7 @@ public class PathAnalyzer<T> implements Analyzer<T> {
 				token = token.getNext();
 			}
 			// if still unresolved at this point, it must be a native type
-			else if (!token.getToken().getType().isNative())
+			else if (!token.getToken().getType().isNative())	// does not work:  && token.getToken().getType() != Type.INDEX_START || token.getToken().getType() != Type.SCOPE_START
 				throw new ParseException("Expecting only operators and native types at this point, found: " + token.getToken(), 0);
 			// leave it for the operators
 			else {

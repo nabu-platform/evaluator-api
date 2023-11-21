@@ -33,6 +33,19 @@ public class MultipleContextAccessor implements ContextAccessor<Object> {
 		}
 		return accessor.has(context, name);
 	}
+	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	@Override
+	public boolean hasValue(Object context, String name) throws EvaluationException {
+		if (context == null) {
+			return false;
+		}
+		ContextAccessor accessor = getAccessor(context);
+		if (accessor == null) {
+			throw new EvaluationException("No accessor for: " + context);
+		}
+		return accessor.hasValue(context, name);
+	}
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override

@@ -270,6 +270,8 @@ public class VariableOperation<T> extends BaseOperation<T> {
 						object = CollectionContextAccessor.listify(object);
 						object = index.intValue() < ((List) object).size() ? ((List) object).get(index.intValue()) : null;
 					}
+					// once you have added numeric access, it is no longer concatenated
+					isConcatenatedResult = false;
 				}
 				// once we have a boolean selection instead of indexed access, we need to resolve the iterable
 				else {

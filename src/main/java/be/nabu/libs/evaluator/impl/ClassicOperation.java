@@ -68,6 +68,29 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 		}
 		return operationExecutors;
 	}
+
+	// we don't want to normalize string concatenation (yet?) because it is too unpredictable
+	// do we allow strings to be used as numbers/booleans etc if they contain the right values? always? never?
+	// when you enable the double stuff though we assume you want to be smarter about number casting
+	private Object normalizeLeft(Object left, Object right) {
+		if (!alwaysUseDoubles || !(left instanceof Number)) {
+			return left;
+		}
+		if (right instanceof BigDecimal && !(left instanceof BigDecimal)) {
+			return getConverter().convert(left, BigDecimal.class);
+		}
+		else if (right instanceof BigInteger && !(left instanceof BigInteger) && !(left instanceof BigDecimal)) {
+			return getConverter().convert(left, BigInteger.class);
+		}
+		else if (right instanceof Double && !(left instanceof BigInteger) && !(left instanceof BigDecimal) && !(left instanceof Double)) {
+			return getConverter().convert(left, Double.class);
+		}
+		// eg the left is a short or something
+		else if (right instanceof Long && !(left instanceof BigInteger) && !(left instanceof BigDecimal) && !(left instanceof Double) && !(left instanceof Long)) {
+			return getConverter().convert(left, Long.class);
+		}
+		return left;
+	}
 	
 	@SuppressWarnings({ "unchecked", "rawtypes", "incomplete-switch" })
 	@Override
@@ -132,9 +155,8 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							// if the left is a number and we always want to use doubles, cast it
 							// this prevents things like integer division which is really annoying to deal with at every turn
 							// or doubles getting cast to integer and losing information simply because the left operand is an integer
-							if (alwaysUseDoubles && left instanceof Number && !(left instanceof Double) && !(left instanceof BigDecimal) && !(left instanceof BigInteger)) {
-								left = getConverter().convert(left, Double.class);
-							}
+							left = normalizeLeft(left, right);
+							
 							// for strings: if the left is a string and the right can not be converted, use default toString() logic
 							if (left instanceof String && right != null && !getConverter().canConvert(right.getClass(), String.class)) {
 								right = right.toString();
@@ -176,9 +198,8 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							if (!(left instanceof Number)) {
 								left = getConverter().convert(left, Double.class);
 							}
-							if (alwaysUseDoubles && left instanceof Number && !(left instanceof Double) && !(left instanceof BigDecimal) && !(left instanceof BigInteger)) {
-								left = getConverter().convert(left, Double.class);
-							}
+							left = normalizeLeft(left, right);
+							
 							right = getConverter().convert(right, left.getClass());
 							if (left instanceof Integer)
 								return ((Number) left).intValue() - ((Number) right).intValue();
@@ -201,9 +222,7 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							if (left instanceof Div) {
 								return ((Div) left).div(right);
 							}
-							if (alwaysUseDoubles && left instanceof Number && !(left instanceof Double) && !(left instanceof BigDecimal) && !(left instanceof BigInteger)) {
-								left = getConverter().convert(left, Double.class);
-							}
+							left = normalizeLeft(left, right);
 							right = getConverter().convert(right, left.getClass());
 							if (left instanceof Integer)
 								return ((Number) left).intValue() / ((Number) right).intValue();
@@ -228,9 +247,7 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							if (left instanceof Mod) {
 								return ((Mod) left).mod(right);
 							}
-							if (alwaysUseDoubles && left instanceof Number && !(left instanceof Double) && !(left instanceof BigDecimal) && !(left instanceof BigInteger)) {
-								left = getConverter().convert(left, Double.class);
-							}
+							left = normalizeLeft(left, right);
 							right = getConverter().convert(right, left.getClass());
 							if (left instanceof Integer)
 								return ((Number) left).intValue() % ((Number) right).intValue();
@@ -253,9 +270,7 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							if (left instanceof Multiply) {
 								return ((Multiply) left).multiply(right);
 							}
-							if (alwaysUseDoubles && left instanceof Number && !(left instanceof Double) && !(left instanceof BigDecimal) && !(left instanceof BigInteger)) {
-								left = getConverter().convert(left, Double.class);
-							}
+							left = normalizeLeft(left, right);
 							right = getConverter().convert(right, left.getClass());
 							if (left instanceof Integer)
 								return ((Number) left).intValue() * ((Number) right).intValue();
@@ -287,9 +302,7 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 								return ((BigDecimal) left).pow((Integer) right);
 							}
 							else {
-								if (alwaysUseDoubles && left instanceof Number && !(left instanceof Double)) {
-									left = getConverter().convert(left, Double.class);
-								}
+								left = normalizeLeft(left, right);
 								right = getConverter().convert(right, left.getClass());
 								Object result = Math.pow(((Number) left).doubleValue(), ((Number) right).doubleValue());
 								return getConverter().convert(result, left.getClass());
