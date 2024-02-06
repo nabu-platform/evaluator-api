@@ -380,7 +380,16 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 								return false;
 							}
 							else {
-								right = getConverter().convert(right, left.getClass());
+								// @2024-02-06
+								// suppose you want to compare a UUID to a string that contains a non-UUID value, there will be a conversion path but it will fail to actually convert the value
+								// the exception is not always cleanly a classcastexception (check StringToUUID for out of bounds or illegal argument exceptions) so we just catch _all_ exceptions.
+								// TODO: we probably need to apply this to some others as well, for example the IN also casts each element in the list to whatever the type is you are comparing it to
+								try {
+									right = getConverter().convert(right, left.getClass());
+								}
+								catch (Exception e) {
+									return false;
+								}
 								// the bigdecimal equals() method is _not_ in sync with the compareTo
 								// the compareTo strongly recommends keeping these two in sync but does not mandate it
 								// this appears to be one of the edge cases
@@ -400,7 +409,13 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 								return true;
 							}
 							else {
-								right = getConverter().convert(right, left.getClass());
+								// @2024-02-06: check equals
+								try {
+									right = getConverter().convert(right, left.getClass());
+								}
+								catch (Exception e) {
+									return false;
+								}
 								// the bigdecimal equals() method is _not_ in sync with the compareTo
 								// the compareTo strongly recommends keeping these two in sync but does not mandate it
 								// this appears to be one of the edge cases
@@ -456,13 +471,26 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 									// for lazily resolved series
 									else if (single instanceof Callable) {
 										Object singleResult = ((Callable) single).call();
-										singleResult = getConverter().convert(singleResult, left.getClass());
+										// @2024-02-06: check comments in the EQUALS
+										// we have the same here: each iteration of the list will be cast to whatever is on the left side, this may not be compatible even if there is a conversion path
+										try {
+											singleResult = getConverter().convert(singleResult, left.getClass());
+										}
+										catch (Exception e) {
+											continue;
+										}
 										if (left.equals(singleResult)) {
 											return true;
 										}
 									}
 									else if (single != null) {
-										single = getConverter().convert(single, left.getClass());
+										// @2024-02-06: check comments above
+										try {
+											single = getConverter().convert(single, left.getClass());
+										}
+										catch (Exception e) {
+											continue;
+										}
 										if (left.equals(single)) {
 											return true;
 										}
@@ -494,13 +522,25 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 									// for lazily resolved series
 									else if (single instanceof Callable) {
 										Object singleResult = ((Callable) single).call();
-										singleResult = getConverter().convert(singleResult, left.getClass());
+										// @2024-02-06: check comments in the IN
+										try {
+											singleResult = getConverter().convert(singleResult, left.getClass());
+										}
+										catch (Exception e) {
+											continue;
+										}
 										if (left.equals(singleResult)) {
 											return false;
 										}
 									}
 									else if (single != null) {
-										single = getConverter().convert(single, left.getClass());
+										// @2024-02-06: check comments in the IN
+										try {
+											single = getConverter().convert(single, left.getClass());
+										}
+										catch (Exception e) {
+											continue;
+										}
 										if (left.equals(single)) {
 											return false;
 										}
