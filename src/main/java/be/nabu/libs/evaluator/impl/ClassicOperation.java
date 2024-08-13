@@ -54,6 +54,10 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 		// do nothing
 	}
 
+	public static Object normalize(Object value) {
+		return value instanceof BigDecimal ? ((BigDecimal) value).stripTrailingZeros() : value;
+	}
+	
 	public static List<OperationExecutor> getOperationExecutors() {
 		if (operationExecutors == null) {
 			synchronized(ClassicOperation.class) {
@@ -131,12 +135,20 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 					}
 					
 					Object right = part.getType().hasRightOperand() ? getOperand(context, i + 1, false) : null;
-
+					
 					for (OperationExecutor possibleExecutor : getOperationExecutors()) {
 						if (possibleExecutor.support(left, part.getType(), right)) {
 							return possibleExecutor.calculate(left, part.getType(), right);
 						}
 					}
+					
+					// normalize the value
+					// the main problem currently is "bigdecimal" which has an "equals" implementation that does not match the "compareTo"
+					// if necessary in the future we could add a "===" operator to do an exact equals (?)
+					// https://www.baeldung.com/java-bigdecimal-equals-compareto-difference#:~:text=For%20BigDecimal.,equal%20in%20value%20and%20scale.
+					left = normalize(left);
+					right = normalize(right);
+					
 					switch (part.getType()) {
 						case ADD:
 							if (left instanceof Plus) {
