@@ -411,6 +411,9 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 								if (left instanceof BigDecimal && right instanceof BigDecimal) {
 									return ((BigDecimal) left).compareTo((BigDecimal) right) == 0;
 								}
+								else if (left instanceof java.util.Date && right instanceof java.util.Date) {
+									return ((java.util.Date) left).getTime() == ((java.util.Date) right).getTime(); 
+								}
 								return left.equals(right);
 							}
 						case NOT_EQUALS:
