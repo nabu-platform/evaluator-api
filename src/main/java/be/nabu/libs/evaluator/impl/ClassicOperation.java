@@ -431,6 +431,12 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 								else if (left instanceof java.util.Date && right instanceof java.util.Date) {
 									return ((java.util.Date) left).getTime() == ((java.util.Date) right).getTime(); 
 								}
+								else if (left instanceof Double && right instanceof Double) {
+									return compareDouble(context, i, (Double) left, (Double) right) == 0;
+								}
+								else if (left instanceof Float && right instanceof Float) {
+									return compareFloat(context, (Float) left, (Float) right) == 0;
+								}
 								return left.equals(right);
 							}
 						case NOT_EQUALS:
@@ -686,6 +692,44 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 		throw new EvaluationException("Could not perform operation: " + toString());
 	}
 	
+	// https://en.wikipedia.org/wiki/Machine_epsilon
+	private int compareFloat(T context, float left, float right) {
+		float epsilon = (float) 1e-6;
+		float relativeDeviation = Math.max(left, right) * epsilon;
+		float absoluteDeviation = (float) 1e-11;
+		float result = Math.abs(left - right);
+		if (result <= relativeDeviation || result <= absoluteDeviation) {
+			return 0;
+		}
+		else if (left > right) {
+			return 1;
+		}
+		else {
+			return -1;
+		}
+	}
+
+	private int compareDouble(T context, int position, double left, double right) {
+		double absoluteDeviation = (float) 1e-20;
+		double relativeDeviation = getDoubleEpsilon(context, position - 1, position + 1, left, right);
+		double result = Math.abs(left - right);
+		if (result <= relativeDeviation || result <= absoluteDeviation) {
+			return 0;
+		}
+		else if (left > right) {
+			return 1;
+		}
+		else {
+			return -1;
+		}
+	}
+	
+	protected double getDoubleEpsilon(T context, int leftPosition, int rightPosition, double left, double right) {
+		double epsilon = 1e-15;
+		double relativeDeviation = Math.max(left, right) * epsilon;
+		return relativeDeviation;
+	}
+
 	public Converter getConverter() {
 		if (converter == null) {
 			converter = ConverterFactory.getInstance().getConverter();
