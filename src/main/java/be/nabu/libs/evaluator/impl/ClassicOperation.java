@@ -54,6 +54,13 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 	private static ThreadLocal<MathContext> mathContext = new ThreadLocal<MathContext>();
 	private static Boolean alwaysUseDoubles = Boolean.parseBoolean(System.getProperty("math.always.doubles", "false"));
 	
+	public ClassicOperation() {
+		// auto construct
+	}
+	public ClassicOperation(boolean allowOperatorOverloading) {
+		this.allowOperatorOverloading = allowOperatorOverloading;
+	}
+	
 	public static void setMathContext(MathContext context) {
 		mathContext.set(context);
 	}
@@ -74,6 +81,8 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 	public static Object normalize(Object value) {
 		return value instanceof BigDecimal ? ((BigDecimal) value).stripTrailingZeros() : value;
 	}
+	
+	private boolean allowOperatorOverloading = true;
 	
 	public static List<OperationExecutor> getOperationExecutors() {
 		if (operationExecutors == null) {
@@ -153,9 +162,11 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 					
 					Object right = part.getType().hasRightOperand() ? getOperand(context, i + 1, false) : null;
 					
-					for (OperationExecutor possibleExecutor : getOperationExecutors()) {
-						if (possibleExecutor.support(left, part.getType(), right)) {
-							return possibleExecutor.calculate(left, part.getType(), right);
+					if (allowOperatorOverloading) {
+						for (OperationExecutor possibleExecutor : getOperationExecutors()) {
+							if (possibleExecutor.support(left, part.getType(), right)) {
+								return possibleExecutor.calculate(left, part.getType(), right);
+							}
 						}
 					}
 					
