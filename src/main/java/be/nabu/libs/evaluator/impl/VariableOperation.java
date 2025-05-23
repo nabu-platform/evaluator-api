@@ -34,6 +34,7 @@ import be.nabu.libs.evaluator.api.ContextAccessor;
 import be.nabu.libs.evaluator.api.Operation;
 import be.nabu.libs.evaluator.api.OperationProvider.OperationType;
 import be.nabu.libs.evaluator.base.BaseOperation;
+import be.nabu.libs.evaluator.base.Reserved;
 
 public class VariableOperation<T> extends BaseOperation<T> {
 	
@@ -110,7 +111,11 @@ public class VariableOperation<T> extends BaseOperation<T> {
 	
 	@Override
 	public Object evaluate(T context) throws EvaluationException {
-		return evaluate(context, 0);
+		return evaluate(context, 0, false);
+	}
+	
+	public Object evaluate(T context, boolean allowUndefined) throws EvaluationException {
+		return evaluate(context, 0, allowUndefined);
 	}
 	
 	@Override
@@ -147,10 +152,10 @@ public class VariableOperation<T> extends BaseOperation<T> {
 		return false;
 	}
 	
-	private Object evaluate(T context, int offset) throws EvaluationException {
+	private Object evaluate(T context, int offset, boolean allowUndefined) throws EvaluationException {
 		getContextStack().push(context);
 		try {
-			return evaluate(offset);
+			return evaluate(offset, allowUndefined);
 		}
 		finally {
 			getContextStack().pop();
@@ -162,7 +167,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 	}
 	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	private Object evaluate(int offset) throws EvaluationException {
+	private Object evaluate(int offset, boolean allowUndefined) throws EvaluationException {
 		Object object = null;
 		T context;
 		Stack<T> contexts = getContextStack();
@@ -179,7 +184,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 				if (offset >= getParts().size() - 1) {
 					throw new EvaluationException("The path can't end with '.'");
 				}
-				return evaluate(offset + 1);
+				return evaluate(offset + 1, allowUndefined);
 			}
 			while (path.equals("..")) {
 				if (offset >= getParts().size() - 1) {
@@ -217,6 +222,13 @@ public class VariableOperation<T> extends BaseOperation<T> {
 					contextIndex = 0;
 					context = contexts.get(contextIndex);
 					object = getAccessor().get(context, path);	
+				}
+			}
+			
+			// @2025-05-23: we want native support for undefined
+			if (allowUndefined && object == null) {
+				if (!getAccessor().hasValue(context, path)) {
+					return Reserved.UNDEFINED;
 				}
 			}
 		}
@@ -340,7 +352,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 					// we just need to evaluate each subpart and add the result to the list
 					for (Object child : CollectionContextAccessor.listify(object)) {
 						if (child != null) {
-							Object childResult = evaluate((T) child, offset + 1);
+							Object childResult = evaluate((T) child, offset + 1, allowUndefined);
 							if (childResult instanceof List)
 								results.addAll((List) childResult);
 							// otherwise, add it (even if null!)
@@ -353,7 +365,7 @@ public class VariableOperation<T> extends BaseOperation<T> {
 				}
 				// otherwise, keep evaluating
 				else {
-					return evaluate((T) object, offset + 1);
+					return evaluate((T) object, offset + 1, allowUndefined);
 				}
 			}
 		}
@@ -378,12 +390,12 @@ public class VariableOperation<T> extends BaseOperation<T> {
 			}
 			// otherwise, keep evaluating
 			else {
-				return evaluate((T) object, offset + 1);
+				return evaluate((T) object, offset + 1, allowUndefined);
 			}
 		}
 		// it's not a list, just recursively evaluate
 		else {
-			return evaluate((T) object, offset + 1);
+			return evaluate((T) object, offset + 1, allowUndefined);
 		}
 	}
 

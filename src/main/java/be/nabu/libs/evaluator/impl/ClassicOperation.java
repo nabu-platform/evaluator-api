@@ -29,10 +29,12 @@ import java.util.concurrent.Callable;
 
 import be.nabu.libs.converter.ConverterFactory;
 import be.nabu.libs.converter.api.Converter;
+import be.nabu.libs.evaluator.ContextAccessorFactory;
 import be.nabu.libs.evaluator.EvaluationException;
 import be.nabu.libs.evaluator.PathAnalyzer;
 import be.nabu.libs.evaluator.QueryPart;
 import be.nabu.libs.evaluator.QueryPart.Type;
+import be.nabu.libs.evaluator.api.ContextAccessor;
 import be.nabu.libs.evaluator.api.Operation;
 import be.nabu.libs.evaluator.api.OperationProvider.OperationType;
 import be.nabu.libs.evaluator.api.operations.And;
@@ -48,6 +50,7 @@ import be.nabu.libs.evaluator.api.operations.Power;
 import be.nabu.libs.evaluator.api.operations.Previous;
 import be.nabu.libs.evaluator.api.operations.Xor;
 import be.nabu.libs.evaluator.base.BaseOperation;
+import be.nabu.libs.evaluator.base.Reserved;
 
 public class ClassicOperation<T> extends BaseOperation<T> {
 	
@@ -413,6 +416,21 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 							}
 							return (Boolean) left || (Boolean) right;
 						case EQUALS:
+							// we're doing an undefined check
+							if (Reserved.UNDEFINED.equals(right)) {
+								// if it is not null, we don't need to check further
+								if (left != null) {
+									return false;
+								}
+								return isUndefined(context, i - 1);
+							}
+							else if (Reserved.UNDEFINED.equals(left)) {
+								// if it is not null, we don't need to check further
+								if (right != null) {
+									return false;
+								}
+								return isUndefined(context, i + 1);								
+							}
 							if (left == null) {
 								return right == null ? true : false;
 							}
@@ -451,6 +469,22 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 								return left.equals(right);
 							}
 						case NOT_EQUALS:
+							// we're doing an undefined check
+							if (Reserved.UNDEFINED.equals(right)) {
+								// if it is not null, we don't need to check further
+								if (left != null) {
+									return true;
+								}
+								return !isUndefined(context, i - 1);
+							}
+							else if (Reserved.UNDEFINED.equals(left)) {
+								// if it is not null, we don't need to check further
+								if (right != null) {
+									return true;
+								}
+								return !isUndefined(context, i + 1);								
+							}
+							
 							if (left == null) {
 								return right == null ? false : true;
 							}
@@ -753,6 +787,24 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 	}
 
 	@SuppressWarnings("unchecked")
+	protected boolean isUndefined(T context, int position) throws EvaluationException {
+		QueryPart part = getParts().get(position);
+		// allow for undefined == undefined...
+		// we explicitly do not allow "null == undefined"
+		// this is because if you do
+		// a = null
+		// echo(a == undefined)
+		// this outputs false because it _is_ defined...with null. So the fixed value "null" _is_ a value.
+		if (part.getType().isNative()) {
+			return Reserved.UNDEFINED.equals(part.getContent());
+		}
+		else if (part.getType() == QueryPart.Type.OPERATION && part.getContent() instanceof VariableOperation) {
+			return Reserved.UNDEFINED.equals(((VariableOperation<T>) part.getContent()).evaluate(context, true));
+		}
+		return false;
+	}
+	
+	@SuppressWarnings("unchecked")
 	protected Object getOperand(T context, int position, boolean optional) throws EvaluationException {
 		QueryPart part = getParts().get(position);
 		if (part.getType().isNative()) {
@@ -840,5 +892,19 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 			}
 		}
 		return builder.toString();
+	}
+	
+	private ContextAccessor<T> accessor = null;
+	
+	@SuppressWarnings("unchecked")
+	public ContextAccessor<T> getAccessor() {
+		if (accessor == null) {
+			accessor = (ContextAccessor<T>) ContextAccessorFactory.getInstance().getAccessor();
+		}
+		return accessor;
+	}
+
+	public void setAccessor(ContextAccessor<T> accessor) {
+		this.accessor = accessor;
 	}
 }

@@ -30,6 +30,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import be.nabu.libs.evaluator.QueryPart.Type;
+import be.nabu.libs.evaluator.base.Reserved;
 
 /**
  * Note: the worded operators are actually non functional atm
@@ -92,6 +93,7 @@ public class QueryParser {
 		parts.put(Type.BOOLEAN_TRUE, "\\btrue\\b");
 		parts.put(Type.BOOLEAN_FALSE, "\\bfalse\\b");
 		parts.put(Type.NULL, "\\bnull\\b");
+		parts.put(Type.UNDEFINED, "\\bundefined\\b");
 		// a method must be followed by an opening scope and must start and end with a \w
 		parts.put(Type.METHOD, "([$]+|\\b[a-zA-Z]+)[\\w.]*[\\w]*(?=[\\s]*\\()");
 		// each "part" of the variable can start with a "@" or a "$" where "@" is for attribute and "$" is for an internal variable
@@ -352,6 +354,9 @@ public class QueryParser {
 						result.add(new QueryPart(tokens.get(i), type, true));
 					else if (type == Type.NULL)
 						result.add(new QueryPart(tokens.get(i), type, null));
+					else if (type == Type.UNDEFINED) {
+						result.add(new QueryPart(tokens.get(i), type, Reserved.UNDEFINED));	
+					}
 					else
 						result.add(new QueryPart(tokens.get(i), type, token));
 					break;

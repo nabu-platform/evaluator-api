@@ -41,6 +41,7 @@ public class QueryPart {
 		BOOLEAN_TRUE(true),
 		BOOLEAN_FALSE(true),
 		NULL(true),
+		UNDEFINED(true),
 		
 		// operators
 		NAMING(true, 0, true, true),
