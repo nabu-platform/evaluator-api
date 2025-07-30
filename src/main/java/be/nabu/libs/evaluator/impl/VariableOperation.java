@@ -448,13 +448,20 @@ public class VariableOperation<T> extends BaseOperation<T> {
 		return (Stack<T>) contextStack.get();
 	}
 	
-	protected Integer getCurrentRoot() {
+	protected static Integer getCurrentRoot() {
 		if (rootStack.get() == null) {
 			rootStack.set(new Stack<Integer>());
 		}
 		return rootStack.get().isEmpty() ? 0 : rootStack.get().peek();
 	}
 
+	public static Object getCurrentRootContext() {
+		if (contextStack.get() != null && !contextStack.get().isEmpty()) {
+			return contextStack.get().get(getCurrentRoot());
+		}
+		return null;
+	}
+	
 	public boolean isAllowParentLookup() {
 		return allowParentLookup;
 	}
