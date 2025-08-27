@@ -44,6 +44,11 @@ public class MapContextAccessor implements ListableContextAccessor<Map>, Writabl
 		return context.get(name);
 	}
 
+	@Override
+	public boolean hasValue(Map context, String name) throws EvaluationException {
+		return context.containsKey(name);
+	}
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public Collection<String> list(Map object) {
