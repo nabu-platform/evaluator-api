@@ -431,6 +431,9 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 								}
 								return isUndefined(context, i + 1);								
 							}
+							// TODO: currently because of operator overloading, the automatic glue iterableoperation thingy kicks in (IF you have glue)
+							// this means a null check on a list will actually check if there is a non-null value in the list
+							// we might want to update this to something similar?
 							if (left == null) {
 								return right == null ? true : false;
 							}
