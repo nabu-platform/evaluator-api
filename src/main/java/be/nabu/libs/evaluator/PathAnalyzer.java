@@ -43,6 +43,49 @@ public class PathAnalyzer<T> implements Analyzer<T> {
 	}
 	
 	public Operation<T> analyze(List<QueryPart> parts) throws ParseException {
+		if (parts == null || parts.isEmpty()) {
+			// An empty expression is only an error if the original line was not blank.
+			// We can't know that here, but we can signal it. The GlueParser will decide.
+			// We throw with a specific message that the GlueParser can look for.
+			throw new ParseException("EMPTY_EXPRESSION", 0);
+		}
+
+		// check depths for lsp
+		int parenthesisDepth = 0;
+		int bracketDepth = 0;
+		for (int i = 0; i < parts.size(); i++) {
+			QueryPart part = parts.get(i);
+			switch (part.getType()) {
+				case SCOPE_START:
+					parenthesisDepth++;
+					break;
+				case SCOPE_STOP:
+					parenthesisDepth--;
+					break;
+				case INDEX_START:
+					bracketDepth++;
+					break;
+				case INDEX_STOP:
+					bracketDepth--;
+					break;
+				default:
+					break;
+			}
+			if (parenthesisDepth < 0) {
+				throw new ParseException("Unmatched closing parenthesis ')'", i);
+			}
+			if (bracketDepth < 0) {
+				throw new ParseException("Unmatched closing bracket ']'", i);
+			}
+		}
+
+		if (parenthesisDepth > 0) {
+			throw new ParseException("Missing closing parenthesis ')'", parts.size() - 1);
+		}
+		if (bracketDepth > 0) {
+			throw new ParseException("Missing closing bracket ']'", parts.size() - 1);
+		}
+
 		return analyze(Token.fromList(parts));
 	}
 		
