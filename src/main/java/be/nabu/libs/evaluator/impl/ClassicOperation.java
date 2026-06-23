@@ -106,7 +106,7 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 	// do we allow strings to be used as numbers/booleans etc if they contain the right values? always? never?
 	// when you enable the double stuff though we assume you want to be smarter about number casting
 	private Object normalizeLeft(Object left, Object right) {
-		if (!alwaysUseDoubles || !(left instanceof Number)) {
+		if (!(left instanceof Number)) {
 			return left;
 		}
 		if (right instanceof BigDecimal && !(left instanceof BigDecimal)) {
@@ -114,6 +114,9 @@ public class ClassicOperation<T> extends BaseOperation<T> {
 		}
 		else if (right instanceof BigInteger && !(left instanceof BigInteger) && !(left instanceof BigDecimal)) {
 			return getConverter().convert(left, BigInteger.class);
+		}
+		if (!alwaysUseDoubles) {
+			return left;
 		}
 		else if (right instanceof Double && !(left instanceof BigInteger) && !(left instanceof BigDecimal) && !(left instanceof Double)) {
 			return getConverter().convert(left, Double.class);
