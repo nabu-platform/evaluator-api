@@ -355,7 +355,10 @@ public class VariableOperation<T> extends BaseOperation<T> {
 							Object childResult = evaluate((T) child, offset + 1, allowUndefined);
 							if (childResult instanceof List)
 								results.addAll((List) childResult);
-							// otherwise, add it (even if null!)
+							// A missing intermediate value is ambiguous without type information. For example,
+							// assets/attachments/content could treat missing attachments as an empty collection,
+							// but assets/owner/name should preserve a null for a missing singular owner. Because
+							// the evaluator can not distinguish these cases, preserve the existing null result.
 							else
 								results.add(childResult);
 						}
